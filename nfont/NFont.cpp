@@ -589,7 +589,7 @@ SDL_Rect NFont::drawToSurface(int x, int y, const char* text) const
     const char* c = text;
     unsigned char num;
     SDL_Rect srcRect, dstRect, copyS, copyD;
-    data.dirtyRect.x = makeRect(x, y, 0, 0);
+    data.dirtyRect = makeRect(x, y, 0, 0);
     
     if(c == NULL || src == NULL || dest == NULL)
         return data.dirtyRect;
@@ -632,7 +632,10 @@ SDL_Rect NFont::drawToSurface(int x, int y, const char* text) const
         copyS = srcRect;
         copyD = dstRect;
         SDL_BlitSurface(src, &srcRect, dest, &dstRect);
-        data.dirtyRect = rectUnion(dirtyRect, dstRect);
+        if(data.dirtyRect.w == 0 || data.dirtyRect.h == 0)
+            data.dirtyRect = dstRect;
+        else
+            data.dirtyRect = rectUnion(data.dirtyRect, dstRect);
         srcRect = copyS;
         dstRect = copyD;
         
@@ -723,7 +726,10 @@ SDL_Rect NFont::drawToSurfacePos(int x, int y, NFont::AnimFn posFn) const
         copyS = srcRect;
         copyD = dstRect;
         SDL_BlitSurface(src, &srcRect, dest, &dstRect);
-        data.dirtyRect = rectUnion(data.dirtyRect, dstRect);
+        if(data.dirtyRect.w == 0 || data.dirtyRect.h == 0)
+            data.dirtyRect = dstRect;
+        else
+            data.dirtyRect = rectUnion(data.dirtyRect, dstRect);
         srcRect = copyS;
         dstRect = copyD;
         
@@ -733,7 +739,7 @@ SDL_Rect NFont::drawToSurfacePos(int x, int y, NFont::AnimFn posFn) const
         x += dstRect.w + letterSpacing;
     }
     
-    return dirtyRect;
+    return data.dirtyRect;
 }
 
 SDL_Rect NFont::draw(int x, int y, const char* formatted_text, ...) const
