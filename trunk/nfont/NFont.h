@@ -1,16 +1,14 @@
 
-// Define this here or in your project settings if you want to use the SDL_ttf features.
-//#define NFONT_USE_TTF
+// Define this here or in your project settings if you do not want to use the SDL_ttf features.
+//#define NFONT_NO_TTF
 
 /*
-NFont v2.0.0: A bitmap font class for SDL
-by Jonathan Dearborn 2-4-10
+NFont v2.1.0: A bitmap font class for SDL
+by Jonathan Dearborn 11-27-11
 (class originally adapted from Florian Hufsky)
 
 Requires:
     SDL ("SDL.h") [www.libsdl.org]
-
-Optionally Requires:
     SDL_ttf ("SDL_ttf.h") [www.libsdl.org]
 
 Notes:
@@ -38,8 +36,8 @@ Notes:
     And the extended bitmaps have these (ASCII 161-255):
     ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~ � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � �
     
-    NFont can also load SDL_ttf fonts.  Define NFONT_USE_TTF before including 
-    NFont.h to use the flexibility of NFont with TrueType fonts.
+    NFont can also load SDL_ttf fonts.  Define NFONT_NO_TTF before including 
+    NFont.h to disable TrueType fonts.
 
     If you come up with something cool using NFont, I'd love to hear about it.
     Any comments can be sent to GrimFang4 [at] gmail [dot] com
@@ -50,7 +48,7 @@ License:
     whenever these files or parts of them are distributed in uncompiled form.
     
     The long:
-Copyright (c) 2010 Jonathan Dearborn
+Copyright (c) 2011 Jonathan Dearborn
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -78,7 +76,7 @@ THE SOFTWARE.
 #include "SDL.h"
 #include "stdarg.h"
 
-#ifdef NFONT_USE_TTF
+#ifndef NFONT_NO_TTF
     #include "SDL_ttf.h"
 #endif
 
@@ -165,7 +163,7 @@ public:
     NFont();
     NFont(SDL_Surface* src);
     NFont(SDL_Surface* dest, SDL_Surface* src);
-    #ifdef NFONT_USE_TTF
+    #ifndef NFONT_NO_TTF
         NFont(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
         NFont(TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
         NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
@@ -181,7 +179,7 @@ public:
     // Loading
     bool load(SDL_Surface* FontSurface);
     bool load(SDL_Surface* destSurface, SDL_Surface* FontSurface);
-    #ifdef NFONT_USE_TTF
+    #ifndef NFONT_NO_TTF
         bool load(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
         bool load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
         bool load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
@@ -192,6 +190,7 @@ public:
 
     // Drawing
     SDL_Rect draw(int x, int y, const char* formatted_text, ...) const;
+    SDL_Rect drawRect(const SDL_Rect& box, const char* formatted_text, ...) const;
     SDL_Rect drawCenter(int x, int y, const char* formatted_text, ...) const;
     SDL_Rect drawRight(int x, int y, const char* formatted_text, ...) const;
     SDL_Rect drawPos(int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
@@ -202,6 +201,7 @@ public:
     SDL_Surface* getSurface() const;
     int getHeight(const char* formatted_text = NULL, ...) const;
     int getWidth(const char* formatted_text, ...) const;
+    int getWrappedHeight(int width, const char* formatted_text, ...) const;
     int getSpacing() const;
     int getLineSpacing() const;
     int getBaseline() const;

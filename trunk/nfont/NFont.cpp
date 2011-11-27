@@ -1,6 +1,6 @@
 /*
-NFont v2.0.0: A bitmap font class for SDL
-by Jonathan Dearborn 2-4-10
+NFont v2.1.0: A bitmap font class for SDL
+by Jonathan Dearborn 11-27-11
 (class adapted from Florian Hufsky)
 
 License:
@@ -9,7 +9,7 @@ License:
     whenever these files or parts of them are distributed in uncompiled form.
     
     The long:
-Copyright (c) 2010 Jonathan Dearborn
+Copyright (c) 2011 Jonathan Dearborn
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -243,7 +243,7 @@ NFont::NFont(SDL_Surface* dest, SDL_Surface* src)
     setDest(dest);
 }
 
-#ifdef NFONT_USE_TTF
+#ifndef NFONT_NO_TTF
 NFont::NFont(TTF_Font* ttf, SDL_Color fg)
 {
     init();
@@ -424,7 +424,7 @@ bool NFont::load(SDL_Surface* destSurface, SDL_Surface* FontSurface)
     return load(FontSurface);
 }
 
-#ifdef NFONT_USE_TTF
+#ifndef NFONT_NO_TTF
 bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
 {
     if(ttf == NULL)
@@ -755,6 +755,107 @@ SDL_Rect NFont::draw(int x, int y, const char* formatted_text, ...) const
     return drawToSurface(x, y, buffer);
 }
 
+int getIndexPastWidth(const char* text, int width, const int* charWidth)
+{
+    int charnum;
+    int len = strlen(text);
+    
+    for (int index = 0; index < len; index++)
+    {
+        char c = text[index];
+        charnum = (unsigned char)(c) - 33;
+
+        // spaces and nonprintable characters
+        if (c == ' ' || charnum > 222)
+        {
+            width -= charWidth[0];
+        }
+        else
+            width -= charWidth[charnum];
+        
+        if(width <= 0)
+            return index;
+    }
+    return 0;
+}
+
+#include <string>
+#include <list>
+using std::string;
+using std::list;
+
+list<string> explode(const string& str, char delimiter)
+{
+    list<string> result;
+    
+    unsigned int oldPos = 0;
+    unsigned int pos = str.find_first_of(delimiter);
+    while(pos != string::npos)
+    {
+        result.push_back(str.substr(oldPos, pos - oldPos));
+        oldPos = pos+1;
+        pos = str.find_first_of(delimiter, oldPos);
+    }
+    
+    result.push_back(str.substr(oldPos, string::npos));
+    
+    return result;
+}
+
+SDL_Rect NFont::drawRect(const SDL_Rect& box, const char* formatted_text, ...) const
+{
+    if(formatted_text == NULL)
+        return makeRect(box.x, box.y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    SDL_Rect oldclip;
+    SDL_GetClipRect(dest, &oldclip);
+    SDL_SetClipRect(dest, &box);
+    
+    int y = box.y;
+    
+    using std::string;
+    string text = buffer;
+    list<string> ls = explode(text, '\n');
+    for(list<string>::iterator e = ls.begin(); e != ls.end(); e++)
+    {
+        string line = *e;
+        
+        // If line is too long, then add words one at a time until we go over.
+        if(getWidth(line.c_str()) > box.w)
+        {
+            list<string> words = explode(line, ' ');
+            list<string>::iterator f = words.begin();
+            line = *f;
+            f++;
+            while(f != words.end())
+            {
+                if(getWidth((line + " " + *f).c_str()) > box.w)
+                {
+                    drawToSurface(box.x, y, line.c_str());
+                    y += getHeight();
+                    line = *f;
+                }
+                else
+                    line += " " + *f;
+                
+                f++;
+            }
+        }
+        
+        drawToSurface(box.x, y, line.c_str());
+        y += getHeight();
+    }
+    
+    SDL_SetClipRect(dest, &oldclip);
+    
+    return box;
+}
+
 SDL_Rect NFont::drawCenter(int x, int y, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
@@ -919,6 +1020,53 @@ int NFont::getWidth(const char* formatted_text, ...) const
     bigWidth = bigWidth >= width? bigWidth : width;
 
     return bigWidth;
+}
+
+
+int NFont::getWrappedHeight(int width, const char* formatted_text, ...) const
+{
+    if(formatted_text == NULL || width <= 0)
+        return height;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    int y = 0;
+    
+    using std::string;
+    string text = buffer;
+    list<string> ls = explode(text, '\n');
+    for(list<string>::iterator e = ls.begin(); e != ls.end(); e++)
+    {
+        string line = *e;
+        
+        // If line is too long, then add words one at a time until we go over.
+        if(getWidth(line.c_str()) > width)
+        {
+            list<string> words = explode(line, ' ');
+            list<string>::iterator f = words.begin();
+            line = *f;
+            f++;
+            while(f != words.end())
+            {
+                if(getWidth((line + " " + *f).c_str()) > width)
+                {
+                    y += getHeight();
+                    line = *f;
+                }
+                else
+                    line += " " + *f;
+                
+                f++;
+            }
+        }
+        
+        y += getHeight();
+    }
+    
+    return y;
 }
 
 int NFont::getAscent(const char character) const
