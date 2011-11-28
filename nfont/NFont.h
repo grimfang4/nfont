@@ -124,15 +124,37 @@ class NFont
         
         NFont::AlignEnum align;
         
-        float t;  // Use for interpolating the motion
         void* userVar;
         
         SDL_Rect dirtyRect;
     };
     
-    // Function pointer
-    typedef void (*AnimFn)(int&, int&, AnimData&);
+    class AnimParams
+    {
+        public:
+        
+        float t;
+        float amplitudeX;
+        float amplitudeY;
+        float frequencyX;
+        float frequencyY;
+        
+        AnimParams()
+            : t(0.0f), amplitudeX(20.0f), amplitudeY(20.0f), frequencyX(1.0f), frequencyY(1.0f)
+        {}
+        AnimParams(float t)
+            : t(t), amplitudeX(20.0f), amplitudeY(20.0f), frequencyX(1.0f), frequencyY(1.0f)
+        {}
+        AnimParams(float t, float amplitude, float frequency)
+            : t(t), amplitudeX(amplitude), amplitudeY(20.0f), frequencyX(frequency), frequencyY(1.0f)
+        {}
+        AnimParams(float t, float amplitudeX, float frequencyX, float amplitudeY, float frequencyY)
+            : t(t), amplitudeX(amplitudeX), amplitudeY(amplitudeY), frequencyX(frequencyX), frequencyY(frequencyY)
+        {}
+    };
     
+    // Function pointer
+    typedef void (*AnimFn)(int&, int&, const AnimParams&, AnimData&);
     
     
     
@@ -170,8 +192,8 @@ class NFont
     // Drawing
     SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
     SDL_Rect draw(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
-    SDL_Rect draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, const char* text, ...) const;
-    SDL_Rect draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...) const;
+    SDL_Rect draw(SDL_Surface* dest, int x, int y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...) const;
+    SDL_Rect draw(SDL_Surface* dest, int x, int y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...) const;
     
     SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
     SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, AlignEnum align, const char* formatted_text, ...) const;
@@ -222,7 +244,7 @@ class NFont
     
     void init();  // Common constructor
 
-    SDL_Rect drawAnimated(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align) const;
+    SDL_Rect drawAnimated(SDL_Surface* dest, int x, int y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align) const;
     
     // Static variables
     static char* buffer;  // Shared buffer for efficient drawing
@@ -239,10 +261,10 @@ class NFont
 
 namespace NFontAnim
 {
-    void bounce(int& x, int& y, NFont::AnimData& data);
-    void wave(int& x, int& y, NFont::AnimData& data);
-    void stretch(int& x, int& y, NFont::AnimData& data);
-    void shake(int& x, int& y, NFont::AnimData& data);
+    void bounce(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void wave(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void stretch(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
 }
 
 
