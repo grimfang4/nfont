@@ -30,10 +30,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "NFont.h"
+#include <cmath>
+
+#include <string>
+#include <list>
+using std::string;
+using std::list;
 
 
-#define MIN(a,b) (a < b? a : b)
-#define MAX(a,b) (a > b? a : b)
+#define MIN(a,b) ((a) < (b)? (a) : (b))
+#define MAX(a,b) ((a) > (b)? (a) : (b))
 
 static inline SDL_Surface* createSurface24(Uint32 width, Uint32 height)
 {
@@ -706,7 +712,7 @@ SDL_Rect NFont::drawLeft(SDL_Surface* dest, int x, int y, const char* text) cons
     return data.dirtyRect;
 }
 
-SDL_Rect NFont::drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const
+SDL_Rect NFont::drawToSurfacePos(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align) const
 {
     data.font = this;
     data.dest = dest;
@@ -723,6 +729,10 @@ SDL_Rect NFont::drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn 
     data.lineNum = 1;
     data.startX = x;  // used as reset value for line feed
     data.startY = y;
+    
+    data.align = align;
+    
+    data.t = t;
     
     int preFnX = x;
     int preFnY = y;
@@ -815,7 +825,7 @@ SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, const char* formatted_text
     return drawLeft(dest, x, y, buffer);
 }
 
-int getIndexPastWidth(const char* text, int width, const int* charWidth)
+/*static int getIndexPastWidth(const char* text, int width, const int* charWidth)
 {
     int charnum;
     int len = strlen(text);
@@ -837,14 +847,11 @@ int getIndexPastWidth(const char* text, int width, const int* charWidth)
             return index;
     }
     return 0;
-}
+}*/
 
-#include <string>
-#include <list>
-using std::string;
-using std::list;
 
-list<string> explode(const string& str, char delimiter)
+
+static list<string> explode(const string& str, char delimiter)
 {
     list<string> result;
     
@@ -1026,7 +1033,7 @@ SDL_Rect NFont::drawRight(SDL_Surface* dest, int x, int y, const char* text) con
 
 
 
-SDL_Rect NFont::drawAlign(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const
+SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
         return makeRect(x, y, 0, 0);
@@ -1049,14 +1056,24 @@ SDL_Rect NFont::drawAlign(SDL_Surface* dest, int x, int y, AlignEnum align, cons
     return makeRect(x, y, 0, 0);
 }
 
-SDL_Rect NFont::drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const
+SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, const char* text, ...) const
 {
     va_list lst;
     va_start(lst, text);
     vsprintf(buffer, text, lst);
     va_end(lst);
 
-    return drawToSurfacePos(dest, x, y, posFn);
+    return drawToSurfacePos(dest, x, y, t, posFn, NFont::LEFT);
+}
+
+SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, AlignEnum align, const char* text, ...) const
+{
+    va_list lst;
+    va_start(lst, text);
+    vsprintf(buffer, text, lst);
+    va_end(lst);
+
+    return drawToSurfacePos(dest, x, y, t, posFn, align);
 }
 
 
@@ -1365,7 +1382,70 @@ void NFont::setBaseline(Uint16 Baseline)
 
 
 
+namespace NFontAnim
+{
 
+void bounce(int& x, int& y, NFont::AnimData& data)
+{
+    y -= int(20*fabs(sin(-4*data.t + (x - data.startX)/40.0)));
+    
+    if(data.align == NFont::CENTER)
+    {
+        x -= data.font->getWidth(data.text)/2;
+    }
+    else if(data.align == NFont::RIGHT)
+    {
+        x -= data.font->getWidth(data.text);
+    }
+}
+
+
+void wave(int& x, int& y, NFont::AnimData& data)
+{
+    y += int(20*sin(-4*data.t + (x - data.startX)/40.0));
+    
+    if(data.align == NFont::CENTER)
+    {
+        x -= data.font->getWidth(data.text)/2;
+    }
+    else if(data.align == NFont::RIGHT)
+    {
+        x -= data.font->getWidth(data.text);
+    }
+}
+
+
+void stretch(int& x, int& y, NFont::AnimData& data)
+{
+    float place = float(data.index) / strlen(data.text);
+    if(data.align == NFont::CENTER)
+    {
+        place -= 0.5f;
+        x -= data.font->getWidth(data.text)/2;
+    }
+    else if(data.align == NFont::RIGHT)
+    {
+        place -= 1.0f;
+        x -= data.font->getWidth(data.text);
+    }
+    x += int(80*(place)*cos(2*data.t));
+}
+
+
+void shake(int& x, int& y, NFont::AnimData& data)
+{
+    if(data.align == NFont::CENTER)
+    {
+        x -= data.font->getWidth(data.text)/2;
+    }
+    else if(data.align == NFont::RIGHT)
+    {
+        x -= data.font->getWidth(data.text);
+    }
+    x += int(4*sin(40*data.t));
+}
+
+}
 
 
 
