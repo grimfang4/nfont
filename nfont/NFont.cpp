@@ -37,6 +37,24 @@ NFont::AnimData NFont::data;
 #define MIN(a,b) (a < b? a : b)
 #define MAX(a,b) (a > b? a : b)
 
+static inline SDL_Surface* createSurface24(Uint32 width, Uint32 height)
+{
+    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 24, 0xFF0000, 0x00FF00, 0x0000FF, 0);
+    #else
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 24, 0x0000FF, 0x00FF00, 0xFF0000, 0);
+    #endif
+}
+
+static inline SDL_Surface* createSurface32(Uint32 width, Uint32 height)
+{
+    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+    #else
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+    #endif
+}
+
 // Static setters
 void NFont::setAnimData(void* data)
 {
@@ -54,25 +72,18 @@ void NFont::setBuffer(unsigned int size)
 
 
 // Static functions
-char* NFont::copyString(const char* c)
+static inline char* copyString(const char* c)
 {
-    if(c == NULL) return NULL;
+    if(c == NULL)
+        return NULL;
+    
+    char* result = new char[strlen(c)+1];
+    strcpy(result, c);
 
-    int count = 0;
-    for(; c[count] != '\0'; count++);
-
-    char* result = new char[count+1];
-
-    for(int i = 0; i < count; i++)
-    {
-        result[i] = c[i];
-    }
-
-    result[count] = '\0';
     return result;
 }
 
-Uint32 NFont::getPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
+static inline Uint32 getPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
 {
     Uint8* bits;
     Uint32 bpp;
@@ -107,7 +118,7 @@ Uint32 NFont::getPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
     return 0;  // Best I could do for errors
 }
 
-SDL_Rect NFont::rectUnion(const SDL_Rect& A, const SDL_Rect& B)
+static inline SDL_Rect rectUnion(const SDL_Rect& A, const SDL_Rect& B)
 {
     Sint16 x,x2,y,y2;
     x = MIN(A.x, B.x);
@@ -118,7 +129,13 @@ SDL_Rect NFont::rectUnion(const SDL_Rect& A, const SDL_Rect& B)
     return result;
 }
 
-SDL_Surface* NFont::copySurface(SDL_Surface *Surface)
+static inline SDL_Rect makeRect(Sint16 x, Sint16 y, Uint16 w, Uint16 h)
+{
+    SDL_Rect r = {x, y, w, h};
+    return r;
+}
+
+static inline SDL_Surface* copySurface(SDL_Surface *Surface)
 {
     return SDL_ConvertSurface(Surface, Surface->format, Surface->flags);
 }
@@ -236,13 +253,6 @@ NFont::NFont(SDL_Surface* src)
     load(src);
 }
 
-NFont::NFont(SDL_Surface* dest, SDL_Surface* src)
-{
-    init();
-    load(src);
-    setDest(dest);
-}
-
 #ifndef NFONT_NO_TTF
 NFont::NFont(TTF_Font* ttf, SDL_Color fg)
 {
@@ -265,36 +275,11 @@ NFont::NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color
     load(filename_ttf, pointSize, fg, bg, style);
 }
 
-NFont::NFont(SDL_Surface* dest, TTF_Font* ttf, SDL_Color fg)
-{
-    init();
-    load(ttf, fg);
-    setDest(dest);
-}
-NFont::NFont(SDL_Surface* dest, TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
-{
-    init();
-    load(ttf, fg, bg);
-    setDest(dest);
-}
-NFont::NFont(SDL_Surface* dest, const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style)
-{
-    init();
-    load(filename_ttf, pointSize, fg, style);
-    setDest(dest);
-}
-NFont::NFont(SDL_Surface* dest, const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style)
-{
-    init();
-    load(filename_ttf, pointSize, fg, bg, style);
-    setDest(dest);
-}
 #endif
 
 void NFont::init()
 {
     src = NULL;
-    dest = NULL;
 
     maxPos = 0;
 
@@ -418,12 +403,6 @@ bool NFont::load(SDL_Surface* FontSurface)
     return true;
 }
 
-bool NFont::load(SDL_Surface* destSurface, SDL_Surface* FontSurface)
-{
-    setDest(destSurface);
-    return load(FontSurface);
-}
-
 #ifndef NFONT_NO_TTF
 bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
 {
@@ -443,11 +422,8 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
         height = (height < surfs[i]->h)? surfs[i]->h : height;
     }
     
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        SDL_Surface* result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,24, 0xFF0000, 0x00FF00, 0x0000FF, 0);
-    #else
-        SDL_Surface* result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,24, 0x0000FF, 0x00FF00, 0xFF0000, 0);
-    #endif
+    SDL_Surface* result = createSurface24(width + 127 - 33 + 1,height);
+    
     Uint32 pink = SDL_MapRGB(result->format, 255, 0, 255);
     Uint32 bgcolor = SDL_MapRGB(result->format, bg.r, bg.g, bg.b);
     
@@ -495,11 +471,8 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg)
         height = (height < surfs[i]->h)? surfs[i]->h : height;
     }
     
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        SDL_Surface* result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-    #else
-        SDL_Surface* result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-    #endif
+    SDL_Surface* result = createSurface32(width + 127 - 33 + 1,height);
+    
     Uint32 pink = SDL_MapRGBA(result->format, 255, 0, 255, SDL_ALPHA_OPAQUE);
     
     SDL_SetAlpha(result, 0, SDL_ALPHA_OPAQUE);
@@ -584,7 +557,7 @@ void NFont::freeSurface()
 
 
 // Drawing
-SDL_Rect NFont::drawToSurface(int x, int y, const char* text) const
+SDL_Rect NFont::drawToSurface(SDL_Surface* dest, int x, int y, const char* text) const
 {
     const char* c = text;
     unsigned char num;
@@ -645,7 +618,7 @@ SDL_Rect NFont::drawToSurface(int x, int y, const char* text) const
     return data.dirtyRect;
 }
 
-SDL_Rect NFont::drawToSurfacePos(int x, int y, NFont::AnimFn posFn) const
+SDL_Rect NFont::drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const
 {
     data.font = this;
     data.dest = dest;
@@ -742,7 +715,7 @@ SDL_Rect NFont::drawToSurfacePos(int x, int y, NFont::AnimFn posFn) const
     return data.dirtyRect;
 }
 
-SDL_Rect NFont::draw(int x, int y, const char* formatted_text, ...) const
+SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
         return makeRect(x, y, 0, 0);
@@ -752,7 +725,7 @@ SDL_Rect NFont::draw(int x, int y, const char* formatted_text, ...) const
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
-    return drawToSurface(x, y, buffer);
+    return drawToSurface(dest, x, y, buffer);
 }
 
 int getIndexPastWidth(const char* text, int width, const int* charWidth)
@@ -802,7 +775,7 @@ list<string> explode(const string& str, char delimiter)
     return result;
 }
 
-SDL_Rect NFont::drawRect(const SDL_Rect& box, const char* formatted_text, ...) const
+SDL_Rect NFont::drawRect(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
         return makeRect(box.x, box.y, 0, 0);
@@ -836,7 +809,7 @@ SDL_Rect NFont::drawRect(const SDL_Rect& box, const char* formatted_text, ...) c
             {
                 if(getWidth((line + " " + *f).c_str()) > box.w)
                 {
-                    drawToSurface(box.x, y, line.c_str());
+                    drawToSurface(dest, box.x, y, line.c_str());
                     y += getHeight();
                     line = *f;
                 }
@@ -847,7 +820,7 @@ SDL_Rect NFont::drawRect(const SDL_Rect& box, const char* formatted_text, ...) c
             }
         }
         
-        drawToSurface(box.x, y, line.c_str());
+        drawToSurface(dest, box.x, y, line.c_str());
         y += getHeight();
     }
     
@@ -856,7 +829,7 @@ SDL_Rect NFont::drawRect(const SDL_Rect& box, const char* formatted_text, ...) c
     return box;
 }
 
-SDL_Rect NFont::drawCenter(int x, int y, const char* formatted_text, ...) const
+SDL_Rect NFont::drawCenter(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
         return makeRect(x, y, 0, 0);
@@ -876,7 +849,7 @@ SDL_Rect NFont::drawCenter(int x, int y, const char* formatted_text, ...) const
         if(*c == '\n')
         {
             *c = '\0';
-            drawToSurface(x - getWidth("%s", str)/2, y, str);
+            drawToSurface(dest, x - getWidth("%s", str)/2, y, str);
             *c = '\n';
             c++;
             str = c;
@@ -889,10 +862,10 @@ SDL_Rect NFont::drawCenter(int x, int y, const char* formatted_text, ...) const
     strcpy(s, str);
     delete[] del;
     
-    return drawToSurface(x - getWidth("%s", s)/2, y, s);
+    return drawToSurface(dest, x - getWidth("%s", s)/2, y, s);
 }
 
-SDL_Rect NFont::drawRight(int x, int y, const char* formatted_text, ...) const
+SDL_Rect NFont::drawRight(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
         return makeRect(x, y, 0, 0);
@@ -910,7 +883,7 @@ SDL_Rect NFont::drawRight(int x, int y, const char* formatted_text, ...) const
         if(*c == '\n')
         {
             *c = '\0';
-            drawToSurface(x - getWidth("%s", str), y, str);
+            drawToSurface(dest, x - getWidth("%s", str), y, str);
             *c = '\n';
             c++;
             str = c;
@@ -923,20 +896,20 @@ SDL_Rect NFont::drawRight(int x, int y, const char* formatted_text, ...) const
     strcpy(s, str);
     delete[] del;
     
-    return drawToSurface(x - getWidth("%s", s), y, s);
+    return drawToSurface(dest, x - getWidth("%s", s), y, s);
 }
 
-SDL_Rect NFont::drawPos(int x, int y, NFont::AnimFn posFn, const char* text, ...) const
+SDL_Rect NFont::drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const
 {
     va_list lst;
     va_start(lst, text);
     vsprintf(buffer, text, lst);
     va_end(lst);
 
-    return drawToSurfacePos(x, y, posFn);
+    return drawToSurfacePos(dest, x, y, posFn);
 }
 
-SDL_Rect NFont::drawAll(int x, int y, NFont::AnimFn allFn, const char* text, ...) const
+SDL_Rect NFont::drawAll(SDL_Surface* dest, int x, int y, NFont::AnimFn allFn, const char* text, ...) const
 {
     va_list lst;
     va_start(lst, text);
@@ -951,10 +924,6 @@ SDL_Rect NFont::drawAll(int x, int y, NFont::AnimFn allFn, const char* text, ...
 
 
 // Getters
-SDL_Surface* NFont::getDest() const
-{
-    return dest;
-}
 
 SDL_Surface* NFont::getSurface() const
 {
@@ -1202,11 +1171,6 @@ void NFont::setSpacing(int LetterSpacing)
 void NFont::setLineSpacing(int LineSpacing)
 {
     lineSpacing = LineSpacing;
-}
-
-void NFont::setDest(SDL_Surface* Dest)
-{
-    dest = Dest;
 }
 
 int NFont::setBaseline(int Baseline)

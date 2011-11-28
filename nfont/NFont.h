@@ -115,7 +115,6 @@ protected:
     
 
     SDL_Surface* src;  // bitmap source of characters
-    SDL_Surface* dest; // Destination to blit to
 
     int height;
 
@@ -133,8 +132,8 @@ protected:
     
     void init();
 
-    SDL_Rect drawToSurface(int x, int y, const char* text) const;
-    SDL_Rect drawToSurfacePos(int x, int y, NFont::AnimFn posFn) const;
+    SDL_Rect drawToSurface(SDL_Surface* dest, int x, int y, const char* text) const;
+    SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const;
     
     // Static variables
     static char* buffer;  // Buffer for efficient drawing
@@ -144,15 +143,6 @@ protected:
 public:
     
     // Static functions
-    static char* copyString(const char* c);
-    static Uint32 getPixel(SDL_Surface *Surface, int x, int y);
-    static inline SDL_Rect makeRect(Sint16 x, Sint16 y, Uint16 w, Uint16 h)
-    {
-        SDL_Rect r = {x, y, w, h};
-        return r;
-    }
-    static SDL_Rect rectUnion(const SDL_Rect& A, const SDL_Rect& B);
-    static SDL_Surface* copySurface(SDL_Surface *Surface);
     static SDL_Surface* verticalGradient(SDL_Surface* targetSurface, Uint32 topColor, Uint32 bottomColor, int heightAdjust = 0);
     
     // Static accessors
@@ -162,23 +152,17 @@ public:
     // Constructors
     NFont();
     NFont(SDL_Surface* src);
-    NFont(SDL_Surface* dest, SDL_Surface* src);
     #ifndef NFONT_NO_TTF
         NFont(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
         NFont(TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
         NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
         NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style = TTF_STYLE_NORMAL);
-        NFont(SDL_Surface* dest, TTF_Font* ttf, SDL_Color fg);  // Alpha bg
-        NFont(SDL_Surface* dest, TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
-        NFont(SDL_Surface* dest, const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
-        NFont(SDL_Surface* dest, const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style = TTF_STYLE_NORMAL);
     #endif
 
     ~NFont();
 
     // Loading
     bool load(SDL_Surface* FontSurface);
-    bool load(SDL_Surface* destSurface, SDL_Surface* FontSurface);
     #ifndef NFONT_NO_TTF
         bool load(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
         bool load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
@@ -189,15 +173,14 @@ public:
     void freeSurface();
 
     // Drawing
-    SDL_Rect draw(int x, int y, const char* formatted_text, ...) const;
-    SDL_Rect drawRect(const SDL_Rect& box, const char* formatted_text, ...) const;
-    SDL_Rect drawCenter(int x, int y, const char* formatted_text, ...) const;
-    SDL_Rect drawRight(int x, int y, const char* formatted_text, ...) const;
-    SDL_Rect drawPos(int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
-    SDL_Rect drawAll(int x, int y, NFont::AnimFn allFn, const char* text, ...) const;
+    SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
+    SDL_Rect drawRect(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
+    SDL_Rect drawCenter(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
+    SDL_Rect drawRight(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
+    SDL_Rect drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
+    SDL_Rect drawAll(SDL_Surface* dest, int x, int y, NFont::AnimFn allFn, const char* text, ...) const;
     
     // Getters
-    SDL_Surface* getDest() const;
     SDL_Surface* getSurface() const;
     int getHeight(const char* formatted_text = NULL, ...) const;
     int getWidth(const char* formatted_text, ...) const;
@@ -212,7 +195,6 @@ public:
     int getMaxWidth() const;
     
     // Setters
-    void setDest(SDL_Surface* Dest);
     void setSpacing(int LetterSpacing);
     void setLineSpacing(int LineSpacing);
     int setBaseline(int Baseline = -1);
