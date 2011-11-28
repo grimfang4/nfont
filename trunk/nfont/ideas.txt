@@ -1,8 +1,7 @@
 
-*Add alignment to drawBox().
+*Make drawBox() use rect intersection with the existing clip rect.
 
 Add animation parameters: AnimData::frequencyX, AnimData::frequencyY, AnimData::amplitudeX, AnimData::amplitudeY
-Make drawBox() use rect union with the existing clip rect.
 Bump to v3.0.0
 Update docs.
 
