@@ -92,9 +92,9 @@ public:
         SDL_Surface* dest;
         SDL_Surface* src;
         char* text;  // Buffer for efficient drawing
-        int height;
+        Uint16 height;
         const int* charPos;
-        const int* charWidth;
+        const Uint16* charWidth;
         int maxX;
         
         int index;
@@ -113,35 +113,8 @@ public:
     
     enum AlignEnum {LEFT, CENTER, RIGHT};
     
-protected:
     
-
-    SDL_Surface* src;  // bitmap source of characters
-
-    int height;
-
-    int maxWidth;
-    int baseline;
-    int ascent;
-    int descent;
-
-    int lineSpacing;
-    int letterSpacing;
-
-    int charPos[256];
-    int charWidth[256];
-    int maxPos;
     
-    void init();
-
-    SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const;
-    
-    // Static variables
-    static char* buffer;  // Buffer for efficient drawing
-    static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
-                                 // the function pointers for animation
-
-public:
     
     // Static functions
     static SDL_Surface* verticalGradient(SDL_Surface* targetSurface, Uint32 topColor, Uint32 bottomColor, int heightAdjust = 0);
@@ -176,14 +149,16 @@ public:
     // Drawing
     SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
     SDL_Rect drawAlign(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
-    SDL_Rect drawRect(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
+    SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
+    SDL_Rect drawColumn(SDL_Surface* dest, Uint32 width, const char* formatted_text, ...) const;
     SDL_Rect drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
     
     // Getters
     SDL_Surface* getSurface() const;
-    int getHeight(const char* formatted_text = NULL, ...) const;
-    int getWidth(const char* formatted_text, ...) const;
-    int getWrappedHeight(int width, const char* formatted_text, ...) const;
+    Uint16 getHeight() const;
+    Uint16 getHeight(const char* formatted_text, ...) const;
+    Uint16 getWidth(const char* formatted_text, ...) const;
+    Uint16 getColumnHeight(Uint16 width, const char* formatted_text, ...) const;
     int getSpacing() const;
     int getLineSpacing() const;
     int getBaseline() const;
@@ -191,14 +166,40 @@ public:
     int getAscent(const char* formatted_text = NULL, ...) const;
     int getDescent(const char character) const;
     int getDescent(const char* formatted_text = NULL, ...) const;
-    int getMaxWidth() const;
+    Uint16 getMaxWidth() const;
     
     // Setters
     void setSpacing(int LetterSpacing);
     void setLineSpacing(int LineSpacing);
     int setBaseline(int Baseline = -1);
     
+    
     private:
+    
+    SDL_Surface* src;  // bitmap source of characters
+
+    Uint16 height;
+
+    Uint16 maxWidth;
+    int baseline;
+    int ascent;
+    int descent;
+
+    int lineSpacing;
+    int letterSpacing;
+
+    int charPos[256];
+    Uint16 charWidth[256];
+    int maxPos;
+    
+    void init();
+
+    SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const;
+    
+    // Static variables
+    static char* buffer;  // Buffer for efficient drawing
+    static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
+                                 // the function pointers for animation
     
     SDL_Rect drawLeft(SDL_Surface* dest, int x, int y, const char* text) const;
     SDL_Rect drawCenter(SDL_Surface* dest, int x, int y, const char* text) const;
