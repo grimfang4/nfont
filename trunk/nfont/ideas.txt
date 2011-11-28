@@ -1,16 +1,14 @@
 
-*Remove dest pointer.  Use a draw parameter instead.
+Make NFont own the surfaces passed to it.  No freeSurface() needed.
 Simplify animation data?
 Load other bitmap font layouts?
 Make boxed drawing awesome.
-Use *Center, *Right for all draw*().  Do not use a parameter for alignment.
-Make NFont own the surfaces passed to it.  No freeSurface() needed.
 Remove "extended ASCII".
 Add real UTF-8.  Maybe not simple with a bitmap storage...  Needs to know which glyphs to create from ttf.  Needs to know how to load glyphs from bitmap (i.e. glyph string "ABC...").
 Update docs.
 
-draw(screen, x, y, text, ...)
-drawAlign(screen, x, y, align, text, ...)
+*draw(screen, x, y, text, ...)
+*drawAlign(screen, x, y, align, text, ...)
 drawFn(screen, x, y, fn, text, ...)
 
 drawColumn()  // no height limit

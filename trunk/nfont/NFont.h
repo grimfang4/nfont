@@ -111,6 +111,8 @@ public:
     // Function pointer
     typedef void (*AnimFn)(int&, int&, AnimData&);
     
+    enum AlignEnum {LEFT, CENTER, RIGHT};
+    
 protected:
     
 
@@ -132,7 +134,6 @@ protected:
     
     void init();
 
-    SDL_Rect drawToSurface(SDL_Surface* dest, int x, int y, const char* text) const;
     SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const;
     
     // Static variables
@@ -174,11 +175,9 @@ public:
 
     // Drawing
     SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
+    SDL_Rect drawAlign(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
     SDL_Rect drawRect(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
-    SDL_Rect drawCenter(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
-    SDL_Rect drawRight(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
     SDL_Rect drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
-    SDL_Rect drawAll(SDL_Surface* dest, int x, int y, NFont::AnimFn allFn, const char* text, ...) const;
     
     // Getters
     SDL_Surface* getSurface() const;
@@ -198,6 +197,12 @@ public:
     void setSpacing(int LetterSpacing);
     void setLineSpacing(int LineSpacing);
     int setBaseline(int Baseline = -1);
+    
+    private:
+    
+    SDL_Rect drawLeft(SDL_Surface* dest, int x, int y, const char* text) const;
+    SDL_Rect drawCenter(SDL_Surface* dest, int x, int y, const char* text) const;
+    SDL_Rect drawRight(SDL_Surface* dest, int x, int y, const char* text) const;
 
 };
 
