@@ -160,6 +160,53 @@ static inline SDL_Surface* copySurface(SDL_Surface *Surface)
 char* NFont::buffer = NULL;
 NFont::AnimData NFont::data;
 
+
+
+NFont::Color::Color()
+    : r(0), g(0), b(0), a(255)
+{}
+NFont::Color::Color(Uint8 r, Uint8 g, Uint8 b)
+    : r(r), g(g), b(b), a(255)
+{}
+NFont::Color::Color(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+    : r(r), g(g), b(b), a(a)
+{}
+
+NFont::Color& NFont::Color::rgb(Uint8 R, Uint8 G, Uint8 B)
+{
+    r = R;
+    g = G;
+    b = B;
+    
+    return *this;
+}
+
+NFont::Color& NFont::Color::rgba(Uint8 R, Uint8 G, Uint8 B, Uint8 A)
+{
+    r = R;
+    g = G;
+    b = B;
+    a = A;
+    
+    return *this;
+}
+
+SDL_Color NFont::Color::toSDL_Color() const
+{
+    SDL_Color c = {r, g, b, a};
+    return c;
+}
+
+
+
+
+
+
+
+
+
+
+
 // Static setters
 void NFont::setAnimData(void* data)
 {
@@ -272,22 +319,22 @@ NFont::NFont(SDL_Surface* src)
 }
 
 #ifndef NFONT_NO_TTF
-NFont::NFont(TTF_Font* ttf, SDL_Color fg)
+NFont::NFont(TTF_Font* ttf, const NFont::Color& fg)
 {
     init();
     load(ttf, fg);
 }
-NFont::NFont(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
+NFont::NFont(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg)
 {
     init();
     load(ttf, fg, bg);
 }
-NFont::NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style)
+NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style)
 {
     init();
     load(filename_ttf, pointSize, fg, style);
 }
-NFont::NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style)
+NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style)
 {
     init();
     load(filename_ttf, pointSize, fg, bg, style);
@@ -433,13 +480,17 @@ bool NFont::load(SDL_Surface* FontSurface)
 }
 
 #ifndef NFONT_NO_TTF
-bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
+bool NFont::load(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg)
 {
     SDL_FreeSurface(src);
     src = NULL;
     
     if(ttf == NULL)
         return false;
+    
+    SDL_Color fgc = fg.toSDL_Color();
+    SDL_Color bgc = bg.toSDL_Color();
+    
     SDL_Surface* surfs[127 - 33];
     int width = 0;
     int height = 0;
@@ -449,7 +500,7 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
     for(int i = 0; i < 127 - 33; i++)
     {
         buff[0] = i + 33;
-        surfs[i] = TTF_RenderText_Shaded(ttf, buff, fg, bg);
+        surfs[i] = TTF_RenderText_Shaded(ttf, buff, fgc, bgc);
         width += surfs[i]->w;
         height = (height < surfs[i]->h)? surfs[i]->h : height;
     }
@@ -485,13 +536,16 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
 }
 
 
-bool NFont::load(TTF_Font* ttf, SDL_Color fg)
+bool NFont::load(TTF_Font* ttf, const NFont::Color& fg)
 {
     SDL_FreeSurface(src);
     src = NULL;
     
     if(ttf == NULL)
         return false;
+    
+    SDL_Color fgc = fg.toSDL_Color();
+    
     SDL_Surface* surfs[127 - 33];
     int width = 0;
     int height = 0;
@@ -501,7 +555,7 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg)
     for(int i = 0; i < 127 - 33; i++)
     {
         buff[0] = i + 33;
-        surfs[i] = TTF_RenderText_Blended(ttf, buff, fg);
+        surfs[i] = TTF_RenderText_Blended(ttf, buff, fgc);
         width += surfs[i]->w;
         height = (height < surfs[i]->h)? surfs[i]->h : height;
     }
@@ -538,7 +592,7 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg)
 }
 
 
-bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style)
+bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style)
 {
     SDL_FreeSurface(src);
     src = NULL;
@@ -562,7 +616,7 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int s
     return result;
 }
 
-bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style)
+bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style)
 {
     SDL_FreeSurface(src);
     src = NULL;

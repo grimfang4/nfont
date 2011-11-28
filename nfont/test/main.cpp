@@ -4,9 +4,7 @@
 
 void loop_drawSomeText(SDL_Surface* screen)
 {
-    NFont font;
-    SDL_Color fontColor = {0, 0, 0, 255};
-    font.load("../fonts/FreeSans.ttf", 20, fontColor);
+    NFont font("../fonts/FreeSans.ttf", 20, NFont::Color(0,0,0,255));
     
     SDL_Rect leftHalf = {0,0,screen->w/2, screen->h};
     SDL_Rect rightHalf = {leftHalf.w,0,screen->w/2, screen->h};
