@@ -713,7 +713,7 @@ SDL_Rect NFont::drawLeft(SDL_Surface* dest, int x, int y, const char* text) cons
     return data.dirtyRect;
 }
 
-SDL_Rect NFont::drawToSurfacePos(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align) const
+SDL_Rect NFont::drawAnimated(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align) const
 {
     data.font = this;
     data.dest = dest;
@@ -972,6 +972,76 @@ SDL_Rect NFont::drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const 
     return makeRect(x, y0, width, y-y0);
 }
 
+SDL_Rect NFont::drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, AlignEnum align, const char* formatted_text, ...) const
+{
+    if(formatted_text == NULL)
+        return makeRect(x, y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    int y0 = y;
+    
+    using std::string;
+    string text = buffer;
+    list<string> ls = explode(text, '\n');
+    for(list<string>::iterator e = ls.begin(); e != ls.end(); e++)
+    {
+        string line = *e;
+        
+        // If line is too long, then add words one at a time until we go over.
+        if(getWidth(line.c_str()) > width)
+        {
+            list<string> words = explode(line, ' ');
+            list<string>::iterator f = words.begin();
+            line = *f;
+            f++;
+            while(f != words.end())
+            {
+                if(getWidth((line + " " + *f).c_str()) > width)
+                {
+                    switch(align)
+                    {
+                        case LEFT:
+                            drawLeft(dest, x, y, line.c_str());
+                            break;
+                        case CENTER:
+                            drawCenter(dest, x, y, line.c_str());
+                            break;
+                        case RIGHT:
+                            drawRight(dest, x, y, line.c_str());
+                            break;
+                    }
+                    y += getHeight();
+                    line = *f;
+                }
+                else
+                    line += " " + *f;
+                
+                f++;
+            }
+        }
+        
+        switch(align)
+        {
+            case LEFT:
+                drawLeft(dest, x, y, line.c_str());
+                break;
+            case CENTER:
+                drawCenter(dest, x, y, line.c_str());
+                break;
+            case RIGHT:
+                drawRight(dest, x, y, line.c_str());
+                break;
+        }
+        y += getHeight();
+    }
+    
+    return makeRect(x, y0, width, y-y0);
+}
+
 SDL_Rect NFont::drawCenter(SDL_Surface* dest, int x, int y, const char* text) const
 {
     if(text == NULL)
@@ -1064,7 +1134,7 @@ SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn pos
     vsprintf(buffer, text, lst);
     va_end(lst);
 
-    return drawToSurfacePos(dest, x, y, t, posFn, NFont::LEFT);
+    return drawAnimated(dest, x, y, t, posFn, NFont::LEFT);
 }
 
 SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, AlignEnum align, const char* text, ...) const
@@ -1074,7 +1144,7 @@ SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn pos
     vsprintf(buffer, text, lst);
     va_end(lst);
 
-    return drawToSurfacePos(dest, x, y, t, posFn, align);
+    return drawAnimated(dest, x, y, t, posFn, align);
 }
 
 

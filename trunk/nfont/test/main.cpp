@@ -9,8 +9,8 @@ void loop_drawSomeText(SDL_Surface* screen)
 {
     NFont font("../fonts/FreeSans.ttf", 20, NFont::Color(0,0,0,255));
     
-    SDL_Rect leftHalf = {0,0,screen->w/2, screen->h};
-    SDL_Rect rightHalf = {leftHalf.w,0,screen->w/2, screen->h};
+    SDL_Rect leftHalf = {0,0,3*screen->w/4, screen->h};
+    SDL_Rect rightHalf = {leftHalf.w,0,screen->w/4, screen->h};
     
     bool done = false;
 	SDL_Event event;
@@ -52,6 +52,10 @@ void loop_drawSomeText(SDL_Surface* screen)
         font.draw(screen, rightHalf.x, 490, time, &NFontAnim::shake, NFont::RIGHT, "shake align RIGHT");
         font.draw(screen, rightHalf.x, 520, time, &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
         font.draw(screen, rightHalf.x, 550, time, &NFontAnim::shake, "shake align LEFT");
+        
+        font.drawColumn(screen, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
+        font.drawColumn(screen, 100, 250, 200, NFont::CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
+        font.drawColumn(screen, 200, 450, 200, NFont::RIGHT, "column align RIGHT\n\nColumn text wraps at the width of the column and has no maximum height.");
 	    
 	    SDL_Flip(screen);
 	    
