@@ -1,4 +1,8 @@
 
+*Change widths and heights to Uint16.
+*getColumnHeight()
+
+Replace SDL_Colors with NFont::Color.
 Make NFont own the surfaces passed to it.  No freeSurface() needed.
 Simplify animation data?
 Load other bitmap font layouts?
@@ -7,13 +11,10 @@ Remove "extended ASCII".
 Add real UTF-8.  Maybe not simple with a bitmap storage...  Needs to know which glyphs to create from ttf.  Needs to know how to load glyphs from bitmap (i.e. glyph string "ABC...").
 Update docs.
 
-*draw(screen, x, y, text, ...)
-*drawAlign(screen, x, y, align, text, ...)
 drawFn(screen, x, y, fn, text, ...)
 
 drawColumn()  // no height limit
 drawBox()
-getColumnHeight()
 
 
 void optimizeForVideoSurface()

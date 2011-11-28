@@ -775,7 +775,7 @@ list<string> explode(const string& str, char delimiter)
     return result;
 }
 
-SDL_Rect NFont::drawRect(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const
+SDL_Rect NFont::drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
         return makeRect(box.x, box.y, 0, 0);
@@ -934,17 +934,22 @@ SDL_Surface* NFont::getSurface() const
     return src;
 }
 
-int NFont::getHeight(const char* formatted_text, ...) const
+Uint16 NFont::getHeight() const
+{
+    return height;
+}
+
+Uint16 NFont::getHeight(const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
-        return height;
+        return 0;
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
-    int numLines = 1;
+    Uint16 numLines = 1;
     const char* c;
 
     for (c = buffer; *c != '\0'; c++)
@@ -957,7 +962,7 @@ int NFont::getHeight(const char* formatted_text, ...) const
     return height*numLines + lineSpacing*(numLines - 1);  //height*numLines;
 }
 
-int NFont::getWidth(const char* formatted_text, ...) const
+Uint16 NFont::getWidth(const char* formatted_text, ...) const
 {
     if (formatted_text == NULL)
         return 0;
@@ -969,8 +974,8 @@ int NFont::getWidth(const char* formatted_text, ...) const
 
     const char* c;
     int charnum = 0;
-    int width = 0;
-    int bigWidth = 0;  // Allows for multi-line strings
+    Uint16 width = 0;
+    Uint16 bigWidth = 0;  // Allows for multi-line strings
 
     for (c = buffer; *c != '\0'; c++)
     {
@@ -996,9 +1001,9 @@ int NFont::getWidth(const char* formatted_text, ...) const
 }
 
 
-int NFont::getWrappedHeight(int width, const char* formatted_text, ...) const
+Uint16 NFont::getColumnHeight(Uint16 width, const char* formatted_text, ...) const
 {
-    if(formatted_text == NULL || width <= 0)
+    if(formatted_text == NULL || width == 0)
         return height;
 
     va_list lst;
@@ -1157,7 +1162,7 @@ int NFont::getBaseline() const
     return baseline;
 }
 
-int NFont::getMaxWidth() const
+Uint16 NFont::getMaxWidth() const
 {
     return maxWidth;
 }
