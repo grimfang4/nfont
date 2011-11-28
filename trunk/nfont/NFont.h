@@ -1,10 +1,6 @@
-
-// Define this here or in your project settings if you do not want to use the SDL_ttf features.
-//#define NFONT_NO_TTF
-
 /*
-NFont v2.1.0: A bitmap font class for SDL
-by Jonathan Dearborn 11-27-11
+NFont v3.0.0: A bitmap font class for SDL
+by Jonathan Dearborn 11-28-11
 (class originally adapted from Florian Hufsky)
 
 Requires:
@@ -13,31 +9,16 @@ Requires:
 
 Notes:
     NFont is a bitmap font class with text-block alignment, full
-    support for the newline character ('\n'), animation, and extended ASCII 
-    support.  It accepts SDL_Surfaces so that any image format you can load 
+    support for the newline character ('\n'), and position animation.  
+    It accepts SDL_Surfaces so that any image format you can load 
     can be used as an NFont.
     
-    NFont has the ability to animate the font in two ways: It's position or 
-    it's everything.  By using drawPos(), you can use a function you create 
-    to handle the final positions of the drawn characters.  With drawAll(), 
-    you can handle everything that the font does (please use my 
-    drawToSurface() function as a reference).
-
-    Internally, NFont uses a pointer (SDL_Surface*) to handle the destination
-    surface.  You have to set the destination before the font can be used.  Be 
-    aware that you will need to use setDest() if you replace the memory that 
-    it points to (like when using screen = SDL_SetVideoMode()).
-    
-    NFont can use standard SFont bitmaps or extended bitmaps.  The standard bitmaps
-    have the following characters (ASCII 33-126) separated by pink (255, 0, 255) pixels in the topmost
-    row:
+    NFont natively loads SFont bitmaps and TrueType fonts with SDL_ttf.  The 
+    standard bitmaps have the following characters (ASCII 33-126) separated by 
+    pink (255, 0, 255) pixels in the topmost row:
     ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
     
-    And the extended bitmaps have these (ASCII 161-255):
-    ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~ � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � � �
-    
-    NFont can also load SDL_ttf fonts.  Define NFONT_NO_TTF before including 
-    NFont.h to disable TrueType fonts.
+    Define NFONT_NO_TTF before including NFont.h to disable TrueType fonts.
 
     If you come up with something cool using NFont, I'd love to hear about it.
     Any comments can be sent to GrimFang4 [at] gmail [dot] com
@@ -67,7 +48,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
 */
 
 #ifndef _NFONT_H__
@@ -265,6 +245,7 @@ namespace NFontAnim
     void wave(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
     void stretch(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
     void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void circle(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
 }
 
 
