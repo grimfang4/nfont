@@ -1,9 +1,10 @@
 
-*Change widths and heights to Uint16.
-*getColumnHeight()
+*drawColumn()  // no height limit
+*Make NFont own the surfaces passed to it.  No freeSurface() needed.
+*Change baseline to Uint16
 
+Make drawBox() do the right thing.
 Replace SDL_Colors with NFont::Color.
-Make NFont own the surfaces passed to it.  No freeSurface() needed.
 Simplify animation data?
 Load other bitmap font layouts?
 Make boxed drawing awesome.
@@ -13,8 +14,6 @@ Update docs.
 
 drawFn(screen, x, y, fn, text, ...)
 
-drawColumn()  // no height limit
-drawBox()
 
 
 void optimizeForVideoSurface()

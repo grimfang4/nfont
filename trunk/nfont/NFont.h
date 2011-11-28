@@ -92,7 +92,6 @@ public:
         SDL_Surface* dest;
         SDL_Surface* src;
         char* text;  // Buffer for efficient drawing
-        Uint16 height;
         const int* charPos;
         const Uint16* charWidth;
         int maxX;
@@ -125,6 +124,7 @@ public:
     
     // Constructors
     NFont();
+    NFont(const NFont& font);
     NFont(SDL_Surface* src);
     #ifndef NFONT_NO_TTF
         NFont(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
@@ -134,6 +134,8 @@ public:
     #endif
 
     ~NFont();
+    
+    NFont& operator=(const NFont& font);
 
     // Loading
     bool load(SDL_Surface* FontSurface);
@@ -144,13 +146,11 @@ public:
         bool load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style = TTF_STYLE_NORMAL);
     #endif
 
-    void freeSurface();
-
     // Drawing
     SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
     SDL_Rect drawAlign(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
     SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
-    SDL_Rect drawColumn(SDL_Surface* dest, Uint32 width, const char* formatted_text, ...) const;
+    SDL_Rect drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...) const;
     SDL_Rect drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
     
     // Getters
@@ -161,17 +161,20 @@ public:
     Uint16 getColumnHeight(Uint16 width, const char* formatted_text, ...) const;
     int getSpacing() const;
     int getLineSpacing() const;
-    int getBaseline() const;
+    Uint16 getBaseline() const;
+    int getAscent() const;
     int getAscent(const char character) const;
-    int getAscent(const char* formatted_text = NULL, ...) const;
+    int getAscent(const char* formatted_text, ...) const;
+    int getDescent() const;
     int getDescent(const char character) const;
-    int getDescent(const char* formatted_text = NULL, ...) const;
+    int getDescent(const char* formatted_text, ...) const;
     Uint16 getMaxWidth() const;
     
     // Setters
     void setSpacing(int LetterSpacing);
     void setLineSpacing(int LineSpacing);
-    int setBaseline(int Baseline = -1);
+    void setBaseline();
+    void setBaseline(Uint16 Baseline);
     
     
     private:
@@ -181,7 +184,7 @@ public:
     Uint16 height;
 
     Uint16 maxWidth;
-    int baseline;
+    Uint16 baseline;
     int ascent;
     int descent;
 
@@ -192,12 +195,12 @@ public:
     Uint16 charWidth[256];
     int maxPos;
     
-    void init();
+    void init();  // Common constructor
 
     SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const;
     
     // Static variables
-    static char* buffer;  // Buffer for efficient drawing
+    static char* buffer;  // Shared buffer for efficient drawing
     static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
                                  // the function pointers for animation
     

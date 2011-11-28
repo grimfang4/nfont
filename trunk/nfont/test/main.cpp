@@ -39,7 +39,6 @@ void loop_drawSomeText(SDL_Surface* screen)
 	    SDL_Delay(1);
 	}
 	
-	font.freeSurface();
 }
 
 int main(int argc, char* argv[])
