@@ -1,7 +1,7 @@
 /*
-NFont v2.1.0: A bitmap font class for SDL
-by Jonathan Dearborn 11-27-11
-(class adapted from Florian Hufsky)
+NFont v3.0.0: A bitmap font class for SDL
+by Jonathan Dearborn 11-28-11
+(class originally adapted from Florian Hufsky)
 
 License:
     The short:
@@ -29,6 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
 #include "NFont.h"
 #include <cmath>
 
@@ -1639,6 +1640,26 @@ void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& dat
         x -= data.font->getWidth(data.text);
     }
     x += int(4*sin(40*params.t));
+}
+
+void circle(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data)
+{
+    // Negate auto-placement
+    x = data.startX;
+    y = data.startY;
+    
+    if(data.align == NFont::LEFT)
+    {
+        x += data.font->getWidth(data.text)/2;
+    }
+    else if(data.align == NFont::RIGHT)
+    {
+        x -= data.font->getWidth(data.text)/2;
+    }
+    
+    float place = float(data.index + 1) / strlen(data.text);
+    x += int(params.amplitudeX*cos(place * 2*M_PI - 2*M_PI*params.frequencyX*params.t));
+    y += int(params.amplitudeY*sin(place * 2*M_PI - 2*M_PI*params.frequencyY*params.t));
 }
 
 }
