@@ -746,7 +746,7 @@ SDL_Rect NFont::drawLeft(SDL_Surface* dest, int x, int y, const char* text) cons
     return data.dirtyRect;
 }
 
-SDL_Rect NFont::drawAnimated(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align) const
+SDL_Rect NFont::drawAnimated(SDL_Surface* dest, int x, int y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align) const
 {
     data.font = this;
     data.dest = dest;
@@ -765,8 +765,6 @@ SDL_Rect NFont::drawAnimated(SDL_Surface* dest, int x, int y, float t, NFont::An
     data.startY = y;
     
     data.align = align;
-    
-    data.t = t;
     
     int preFnX = x;
     int preFnY = y;
@@ -822,7 +820,7 @@ SDL_Rect NFont::drawAnimated(SDL_Surface* dest, int x, int y, float t, NFont::An
         preFnY = y;
 
         // Use function pointer to get final x, y values
-        posFn(x, y, data);
+        posFn(x, y, params, data);
         
         dstRect.x = x;
         dstRect.y = y;
@@ -1238,24 +1236,24 @@ SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, AlignEnum align, const cha
     return makeRect(x, y, 0, 0);
 }
 
-SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, const char* text, ...) const
+SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, const NFont::AnimParams& params, NFont::AnimFn posFn, const char* text, ...) const
 {
     va_list lst;
     va_start(lst, text);
     vsprintf(buffer, text, lst);
     va_end(lst);
 
-    return drawAnimated(dest, x, y, t, posFn, NFont::LEFT);
+    return drawAnimated(dest, x, y, params, posFn, NFont::LEFT);
 }
 
-SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, AlignEnum align, const char* text, ...) const
+SDL_Rect NFont::draw(SDL_Surface* dest, int x, int y, const NFont::AnimParams& params, NFont::AnimFn posFn, AlignEnum align, const char* text, ...) const
 {
     va_list lst;
     va_start(lst, text);
     vsprintf(buffer, text, lst);
     va_end(lst);
 
-    return drawAnimated(dest, x, y, t, posFn, align);
+    return drawAnimated(dest, x, y, params, posFn, align);
 }
 
 
@@ -1583,9 +1581,9 @@ void NFont::optimizeForVideoSurface()
 namespace NFontAnim
 {
 
-void bounce(int& x, int& y, NFont::AnimData& data)
+void bounce(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data)
 {
-    y -= int(20*fabs(sin(-4*data.t + (x - data.startX)/40.0)));
+    y -= int(params.amplitudeX*fabs(sin(-M_PI*params.frequencyX*params.t + (x - data.startX)/40.0)));
     
     if(data.align == NFont::CENTER)
     {
@@ -1598,9 +1596,9 @@ void bounce(int& x, int& y, NFont::AnimData& data)
 }
 
 
-void wave(int& x, int& y, NFont::AnimData& data)
+void wave(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data)
 {
-    y += int(20*sin(-4*data.t + (x - data.startX)/40.0));
+    y += int(params.amplitudeX*sin(-2*M_PI*params.frequencyX*params.t + (x - data.startX)/40.0));
     
     if(data.align == NFont::CENTER)
     {
@@ -1613,7 +1611,7 @@ void wave(int& x, int& y, NFont::AnimData& data)
 }
 
 
-void stretch(int& x, int& y, NFont::AnimData& data)
+void stretch(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data)
 {
     float place = float(data.index) / strlen(data.text);
     if(data.align == NFont::CENTER)
@@ -1626,11 +1624,11 @@ void stretch(int& x, int& y, NFont::AnimData& data)
         place -= 1.0f;
         x -= data.font->getWidth(data.text);
     }
-    x += int(80*(place)*cos(2*data.t));
+    x += int(80*(place)*cos(2*params.t));
 }
 
 
-void shake(int& x, int& y, NFont::AnimData& data)
+void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data)
 {
     if(data.align == NFont::CENTER)
     {
@@ -1640,7 +1638,7 @@ void shake(int& x, int& y, NFont::AnimData& data)
     {
         x -= data.font->getWidth(data.text);
     }
-    x += int(4*sin(40*data.t));
+    x += int(4*sin(40*params.t));
 }
 
 }

@@ -70,21 +70,21 @@ void loop_drawSomeText(SDL_Surface* screen)
 	    
 	    float time = SDL_GetTicks()/1000.0f;
 	    
-	    font.draw(screen, rightHalf.x, 220, time, &NFontAnim::bounce, NFont::RIGHT, "bounce align RIGHT");
-	    font2.draw(screen, rightHalf.x, 280, time, &NFontAnim::bounce, "bounce align LEFT");
-	    font3.draw(screen, rightHalf.x, 250, time, &NFontAnim::bounce, NFont::CENTER, "bounce align CENTER");
+	    font.draw(screen, rightHalf.x, 220, NFont::AnimParams(time), &NFontAnim::bounce, NFont::RIGHT, "bounce align RIGHT");
+	    font2.draw(screen, rightHalf.x, 280, NFont::AnimParams(time), &NFontAnim::bounce, "bounce align LEFT");
+	    font3.draw(screen, rightHalf.x, 250, NFont::AnimParams(time), &NFontAnim::bounce, NFont::CENTER, "bounce align CENTER");
 	    
-	    font.draw(screen, rightHalf.x, 310, time, &NFontAnim::wave, NFont::RIGHT, "wave align RIGHT");
-	    font2.draw(screen, rightHalf.x, 340, time, &NFontAnim::wave, NFont::CENTER, "wave align CENTER");
-	    font3.draw(screen, rightHalf.x, 370, time, &NFontAnim::wave, "wave align LEFT");
+	    font.draw(screen, rightHalf.x, 310, NFont::AnimParams(time), &NFontAnim::wave, NFont::RIGHT, "wave align RIGHT");
+	    font2.draw(screen, rightHalf.x, 340, NFont::AnimParams(time), &NFontAnim::wave, NFont::CENTER, "wave align CENTER");
+	    font3.draw(screen, rightHalf.x, 370, NFont::AnimParams(time), &NFontAnim::wave, "wave align LEFT");
 	    
-	    font.draw(screen, rightHalf.x, 400, time, &NFontAnim::stretch, NFont::RIGHT, "stretch align RIGHT");
-	    font2.draw(screen, rightHalf.x, 430, time, &NFontAnim::stretch, NFont::CENTER, "stretch align CENTER");
-	    font3.draw(screen, rightHalf.x, 460, time, &NFontAnim::stretch, "stretch align LEFT");
+	    font.draw(screen, rightHalf.x, 400, NFont::AnimParams(time), &NFontAnim::stretch, NFont::RIGHT, "stretch align RIGHT");
+	    font2.draw(screen, rightHalf.x, 430, NFont::AnimParams(time), &NFontAnim::stretch, NFont::CENTER, "stretch align CENTER");
+	    font3.draw(screen, rightHalf.x, 460, NFont::AnimParams(time), &NFontAnim::stretch, "stretch align LEFT");
 	    
-        font.draw(screen, rightHalf.x, 490, time, &NFontAnim::shake, NFont::RIGHT, "shake align RIGHT");
-        font2.draw(screen, rightHalf.x, 520, time, &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
-        font3.draw(screen, rightHalf.x, 550, time, &NFontAnim::shake, "shake align LEFT");
+        font.draw(screen, rightHalf.x, 490, NFont::AnimParams(time), &NFontAnim::shake, NFont::RIGHT, "shake align RIGHT");
+        font2.draw(screen, rightHalf.x, 520, NFont::AnimParams(time), &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
+        font3.draw(screen, rightHalf.x, 550, NFont::AnimParams(time), &NFontAnim::shake, "shake align LEFT");
         
         font.drawColumn(screen, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
         font.drawColumn(screen, 100, 250, 200, NFont::CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
