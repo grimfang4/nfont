@@ -84,6 +84,22 @@ class NFont
 {
 public:
 
+    class Color
+    {
+        public:
+        
+        Uint8 r, g, b, a;
+        
+        Color();
+        Color(Uint8 r, Uint8 g, Uint8 b);
+        Color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        
+        Color& rgb(Uint8 R, Uint8 G, Uint8 B);
+        Color& rgba(Uint8 R, Uint8 G, Uint8 B, Uint8 A);
+        
+        SDL_Color toSDL_Color() const;
+    };
+
     // Nested struct
     struct AnimData
     {
@@ -127,10 +143,10 @@ public:
     NFont(const NFont& font);
     NFont(SDL_Surface* src);
     #ifndef NFONT_NO_TTF
-        NFont(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
-        NFont(TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
-        NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
-        NFont(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style = TTF_STYLE_NORMAL);
+        NFont(TTF_Font* ttf, const NFont::Color& fg);  // Alpha bg
+        NFont(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg);
+        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
+        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style = TTF_STYLE_NORMAL);
     #endif
 
     ~NFont();
@@ -140,10 +156,10 @@ public:
     // Loading
     bool load(SDL_Surface* FontSurface);
     #ifndef NFONT_NO_TTF
-        bool load(TTF_Font* ttf, SDL_Color fg);  // Alpha bg
-        bool load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg);
-        bool load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
-        bool load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style = TTF_STYLE_NORMAL);
+        bool load(TTF_Font* ttf, const NFont::Color& fg);  // Alpha bg
+        bool load(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg);
+        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
+        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style = TTF_STYLE_NORMAL);
     #endif
 
     // Drawing
