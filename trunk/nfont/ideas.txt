@@ -1,7 +1,4 @@
 
-*Add circle animation.
-*Bump to v3.0.0
-*Update doc comments.
 
 Load other bitmap font layouts?
 Remove "extended ASCII".

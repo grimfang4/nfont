@@ -1625,7 +1625,7 @@ void stretch(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& d
         place -= 1.0f;
         x -= data.font->getWidth(data.text);
     }
-    x += int(80*(place)*cos(2*params.t));
+    x += int(params.amplitudeX*(place)*cos(2*M_PI*params.frequencyX*params.t));
 }
 
 
@@ -1639,7 +1639,8 @@ void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& dat
     {
         x -= data.font->getWidth(data.text);
     }
-    x += int(4*sin(40*params.t));
+    x += int(params.amplitudeX*sin(2*M_PI*params.frequencyX*params.t));
+    y += int(params.amplitudeY*sin(2*M_PI*params.frequencyY*params.t));
 }
 
 void circle(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data)

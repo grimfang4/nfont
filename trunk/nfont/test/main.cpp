@@ -85,9 +85,9 @@ void loop_drawSomeText(SDL_Surface* screen)
         font2.draw(screen, rightHalf.x, 410, NFont::AnimParams(time, 60, 0.2, 60, 0.1), &NFontAnim::circle, NFont::CENTER, "circle align CENTER");
         font3.draw(screen, rightHalf.x, 440, NFont::AnimParams(time, 60, 0.2, 60, 0.1), &NFontAnim::circle, "circle align LEFT");
 	    
-        font.draw(screen, rightHalf.x, 490, NFont::AnimParams(time), &NFontAnim::shake, NFont::RIGHT, "shake align RIGHT");
-        font2.draw(screen, rightHalf.x, 520, NFont::AnimParams(time), &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
-        font3.draw(screen, rightHalf.x, 550, NFont::AnimParams(time), &NFontAnim::shake, "shake align LEFT");
+        font.draw(screen, rightHalf.x, 490, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, NFont::RIGHT, "shake align RIGHT");
+        font2.draw(screen, rightHalf.x, 520, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
+        font3.draw(screen, rightHalf.x, 550, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, "shake align LEFT");
         
         font.drawColumn(screen, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
         font.drawColumn(screen, 100, 250, 200, NFont::CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
