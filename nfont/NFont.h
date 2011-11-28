@@ -80,6 +80,7 @@ THE SOFTWARE.
     #include "SDL_ttf.h"
 #endif
 
+
 class NFont
 {
 public:
@@ -100,7 +101,9 @@ public:
         SDL_Color toSDL_Color() const;
     };
 
-    // Nested struct
+    
+    enum AlignEnum {LEFT, CENTER, RIGHT};
+    
     struct AnimData
     {
         const NFont* font;
@@ -118,6 +121,10 @@ public:
         int lineNum;
         int startX;
         int startY;
+        
+        NFont::AlignEnum align;
+        
+        float t;  // Use for interpolating the motion
         void* userVar;
         
         SDL_Rect dirtyRect;
@@ -125,8 +132,6 @@ public:
     
     // Function pointer
     typedef void (*AnimFn)(int&, int&, AnimData&);
-    
-    enum AlignEnum {LEFT, CENTER, RIGHT};
     
     
     
@@ -164,10 +169,12 @@ public:
 
     // Drawing
     SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
-    SDL_Rect drawAlign(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
+    SDL_Rect draw(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
+    SDL_Rect draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, const char* text, ...) const;
+    SDL_Rect draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...) const;
+    
     SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
     SDL_Rect drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...) const;
-    SDL_Rect drawPos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn, const char* text, ...) const;
     
     // Getters
     SDL_Surface* getSurface() const;
@@ -213,7 +220,7 @@ public:
     
     void init();  // Common constructor
 
-    SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn posFn) const;
+    SDL_Rect drawToSurfacePos(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align) const;
     
     // Static variables
     static char* buffer;  // Shared buffer for efficient drawing
@@ -225,6 +232,15 @@ public:
     SDL_Rect drawRight(SDL_Surface* dest, int x, int y, const char* text) const;
 
 };
+
+
+namespace NFontAnim
+{
+    void bounce(int& x, int& y, NFont::AnimData& data);
+    void wave(int& x, int& y, NFont::AnimData& data);
+    void stretch(int& x, int& y, NFont::AnimData& data);
+    void shake(int& x, int& y, NFont::AnimData& data);
+}
 
 
 

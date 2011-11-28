@@ -1,22 +1,25 @@
 
-*Replace SDL_Colors with NFont::Color.
-
-Make drawBox() do the right thing.
-Simplify animation data?
-Load other bitmap font layouts?
-Make boxed drawing awesome.
-Remove "extended ASCII".
-Add real UTF-8.  Maybe not simple with a bitmap storage...  Needs to know which glyphs to create from ttf.  Needs to know how to load glyphs from bitmap (i.e. glyph string "ABC...").
-Update docs.
-
-drawFn(screen, x, y, fn, text, ...)
-
-
+*Add time parameter to animations
+*Add default animations (NFontAnim namespace)
+*Change drawPos() to draw()
 
 void optimizeForVideoSurface()
 {
 	SDL_DisplayFormatAlpha();
-} 
+}
+Add animation parameters: AnimData::frequencyX, AnimData::frequencyY, AnimData::amplitudeX, AnimData::amplitudeY
+Make drawBox() do the right thing.
+Make boxed drawing awesome.
+Bump to v3.0.0
+Update docs.
+
+Load other bitmap font layouts?
+Remove "extended ASCII".
+Add real UTF-8.  Maybe not simple with a bitmap storage...  Needs to know which glyphs to create from ttf.  Needs to know how to load glyphs from bitmap (i.e. glyph string "ABC...").
+
+
+
+
 
 
 
