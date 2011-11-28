@@ -1,11 +1,8 @@
 
-*Add alignment to drawColumn().
-
+*Add alignment to drawBox().
 
 Add animation parameters: AnimData::frequencyX, AnimData::frequencyY, AnimData::amplitudeX, AnimData::amplitudeY
-Make drawBox() do the right thing.
-Add alignment to drawBox().
-Make boxed drawing awesome.
+Make drawBox() use rect union with the existing clip rect.
 Bump to v3.0.0
 Update docs.
 

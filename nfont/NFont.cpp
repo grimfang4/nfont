@@ -924,6 +924,82 @@ SDL_Rect NFont::drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* form
     return box;
 }
 
+SDL_Rect NFont::drawBox(SDL_Surface* dest, const SDL_Rect& box, AlignEnum align, const char* formatted_text, ...) const
+{
+    if(formatted_text == NULL)
+        return makeRect(box.x, box.y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    SDL_Rect oldclip;
+    SDL_GetClipRect(dest, &oldclip);
+    SDL_SetClipRect(dest, &box);
+    
+    int y = box.y;
+    
+    using std::string;
+    string text = buffer;
+    list<string> ls = explode(text, '\n');
+    for(list<string>::iterator e = ls.begin(); e != ls.end(); e++)
+    {
+        string line = *e;
+        
+        // If line is too long, then add words one at a time until we go over.
+        if(getWidth(line.c_str()) > box.w)
+        {
+            list<string> words = explode(line, ' ');
+            list<string>::iterator f = words.begin();
+            line = *f;
+            f++;
+            while(f != words.end())
+            {
+                if(getWidth((line + " " + *f).c_str()) > box.w)
+                {
+                    switch(align)
+                    {
+                        case LEFT:
+                            drawLeft(dest, box.x, y, line.c_str());
+                            break;
+                        case CENTER:
+                            drawCenter(dest, box.x + box.w/2, y, line.c_str());
+                            break;
+                        case RIGHT:
+                            drawRight(dest, box.x + box.w, y, line.c_str());
+                            break;
+                    }
+                    y += getHeight();
+                    line = *f;
+                }
+                else
+                    line += " " + *f;
+                
+                f++;
+            }
+        }
+        
+        switch(align)
+        {
+            case LEFT:
+                drawLeft(dest, box.x, y, line.c_str());
+                break;
+            case CENTER:
+                drawCenter(dest, box.x + box.w/2, y, line.c_str());
+                break;
+            case RIGHT:
+                drawRight(dest, box.x + box.w, y, line.c_str());
+                break;
+        }
+        y += getHeight();
+    }
+    
+    SDL_SetClipRect(dest, &oldclip);
+    
+    return box;
+}
+
 SDL_Rect NFont::drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
