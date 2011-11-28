@@ -7,7 +7,6 @@ void loop_drawSomeText(SDL_Surface* screen)
     NFont font;
     SDL_Color fontColor = {0, 0, 0, 255};
     font.load("../fonts/FreeSans.ttf", 20, fontColor);
-    font.setDest(screen);
     
     bool done = false;
 	SDL_Event event;
@@ -26,7 +25,7 @@ void loop_drawSomeText(SDL_Surface* screen)
 	    
 	    SDL_FillRect(screen, NULL, 0xffffff);
 	    
-	    font.draw(50, 50, "Hey");
+	    font.draw(screen, 50, 50, "Hey");
 	    
 	    SDL_Flip(screen);
 	    
