@@ -4,6 +4,24 @@
 #include <cmath>
 
 
+void drawRect(SDL_Surface* surf, const SDL_Rect& rect, Uint32 color)
+{
+    SDL_Rect r;
+    r.x = rect.x;
+    r.y = rect.y;
+    r.w = rect.w;
+    r.h = 1;
+    SDL_FillRect(surf, &r, color);
+    r.y = rect.y + rect.h;
+    SDL_FillRect(surf, &r, color);
+    
+    r.y = rect.y;
+    r.w = 1;
+    r.h = rect.h;
+    SDL_FillRect(surf, &r, color);
+    r.x = rect.x + rect.w;
+    SDL_FillRect(surf, &r, color);
+}
 
 void loop_drawSomeText(SDL_Surface* screen)
 {
@@ -11,6 +29,10 @@ void loop_drawSomeText(SDL_Surface* screen)
     
     SDL_Rect leftHalf = {0,0,3*screen->w/4, screen->h};
     SDL_Rect rightHalf = {leftHalf.w,0,screen->w/4, screen->h};
+    
+    SDL_Rect box1 = {215, 50, 150, 150};
+    SDL_Rect box2 = {215, box1.y + box1.h + 50, 150, 150};
+    SDL_Rect box3 = {215, box2.y + box2.h + 50, 150, 150};
     
     bool done = false;
 	SDL_Event event;
@@ -56,6 +78,13 @@ void loop_drawSomeText(SDL_Surface* screen)
         font.drawColumn(screen, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
         font.drawColumn(screen, 100, 250, 200, NFont::CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
         font.drawColumn(screen, 200, 450, 200, NFont::RIGHT, "column align RIGHT\n\nColumn text wraps at the width of the column and has no maximum height.");
+	    
+	    drawRect(screen, box1, 0x000000);
+	    drawRect(screen, box2, 0x000000);
+	    drawRect(screen, box3, 0x000000);
+        font.drawBox(screen, box1, "box align LEFT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        font.drawBox(screen, box2, NFont::CENTER, "box align CENTER\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        font.drawBox(screen, box3, NFont::RIGHT, "box align RIGHT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
 	    
 	    SDL_Flip(screen);
 	    

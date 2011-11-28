@@ -174,6 +174,7 @@ class NFont
     SDL_Rect draw(SDL_Surface* dest, int x, int y, float t, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...) const;
     
     SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
+    SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, AlignEnum align, const char* formatted_text, ...) const;
     SDL_Rect drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...) const;
     SDL_Rect drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, AlignEnum align, const char* formatted_text, ...) const;
     
