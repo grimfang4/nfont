@@ -1,12 +1,7 @@
 
-*Add time parameter to animations
-*Add default animations (NFontAnim namespace)
-*Change drawPos() to draw()
 
-void optimizeForVideoSurface()
-{
-	SDL_DisplayFormatAlpha();
-}
+*void optimizeForVideoSurface()
+
 Add animation parameters: AnimData::frequencyX, AnimData::frequencyY, AnimData::amplitudeX, AnimData::amplitudeY
 Make drawBox() do the right thing.
 Make boxed drawing awesome.
