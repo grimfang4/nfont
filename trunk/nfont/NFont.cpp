@@ -472,6 +472,7 @@ bool NFont::load(SDL_Surface* FontSurface)
     
     height = ascent + descent;
     
+    optimizeForVideoSurface();
 
     if((src->flags & SDL_SRCALPHA) != SDL_SRCALPHA)
     {
@@ -481,7 +482,7 @@ bool NFont::load(SDL_Surface* FontSurface)
     }
     else
         SDL_UnlockSurface(src);
-
+    
     return true;
 }
 
@@ -1378,6 +1379,22 @@ void NFont::setBaseline()
 void NFont::setBaseline(Uint16 Baseline)
 {
     baseline = Baseline;
+}
+
+
+
+void NFont::optimizeForVideoSurface()
+{
+    if(src == NULL)
+        return;
+    SDL_Surface* temp = src;
+    
+    if(src->format->Amask == 0)
+        src = SDL_DisplayFormat(src);
+    else
+        src = SDL_DisplayFormatAlpha(src);
+    
+    SDL_FreeSurface(temp);
 }
 
 

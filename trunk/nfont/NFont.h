@@ -83,7 +83,7 @@ THE SOFTWARE.
 
 class NFont
 {
-public:
+  public:
 
     class Color
     {
@@ -200,7 +200,7 @@ public:
     void setBaseline(Uint16 Baseline);
     
     
-    private:
+  private:
     
     SDL_Surface* src;  // bitmap source of characters
 
@@ -230,7 +230,8 @@ public:
     SDL_Rect drawLeft(SDL_Surface* dest, int x, int y, const char* text) const;
     SDL_Rect drawCenter(SDL_Surface* dest, int x, int y, const char* text) const;
     SDL_Rect drawRight(SDL_Surface* dest, int x, int y, const char* text) const;
-
+    
+    void optimizeForVideoSurface();
 };
 
 
