@@ -31,8 +31,6 @@ THE SOFTWARE.
 */
 #include "NFont.h"
 
-char* NFont::buffer = NULL;
-NFont::AnimData NFont::data;
 
 #define MIN(a,b) (a < b? a : b)
 #define MAX(a,b) (a > b? a : b)
@@ -55,23 +53,6 @@ static inline SDL_Surface* createSurface32(Uint32 width, Uint32 height)
     #endif
 }
 
-// Static setters
-void NFont::setAnimData(void* data)
-{
-    NFont::data.userVar = data;
-}
-
-void NFont::setBuffer(unsigned int size)
-{
-    delete[] buffer;
-    if(size > 0)
-        buffer = new char[size];
-    else
-        buffer = new char[1024];
-}
-
-
-// Static functions
 static inline char* copyString(const char* c)
 {
     if(c == NULL)
@@ -83,7 +64,7 @@ static inline char* copyString(const char* c)
     return result;
 }
 
-static inline Uint32 getPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
+static inline Uint32 getPixel(SDL_Surface *Surface, int x, int y)
 {
     Uint8* bits;
     Uint32 bpp;
@@ -115,7 +96,37 @@ static inline Uint32 getPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
             break;
     }
 
-    return 0;  // Best I could do for errors
+    return 0;  // FIXME: Handle errors better
+}
+
+static inline void setPixel(SDL_Surface* surface, int x, int y, Uint32 color)
+{
+    int bpp = surface->format->BytesPerPixel;
+    Uint8* bits = ((Uint8 *)surface->pixels) + y*surface->pitch + x*bpp;
+
+    /* Set the pixel */
+    switch(bpp)
+    {
+        case 1:
+            *((Uint8 *)(bits)) = (Uint8)color;
+            break;
+        case 2:
+            *((Uint16 *)(bits)) = (Uint16)color;
+            break;
+        case 3: { /* Format/endian independent */
+            Uint8 r,g,b;
+            r = (color >> surface->format->Rshift) & 0xFF;
+            g = (color >> surface->format->Gshift) & 0xFF;
+            b = (color >> surface->format->Bshift) & 0xFF;
+            *((bits)+surface->format->Rshift/8) = r;
+            *((bits)+surface->format->Gshift/8) = g;
+            *((bits)+surface->format->Bshift/8) = b;
+            }
+            break;
+        case 4:
+            *((Uint32 *)(bits)) = (Uint32)color;
+            break;
+    }
 }
 
 static inline SDL_Rect rectUnion(const SDL_Rect& A, const SDL_Rect& B)
@@ -138,6 +149,30 @@ static inline SDL_Rect makeRect(Sint16 x, Sint16 y, Uint16 w, Uint16 h)
 static inline SDL_Surface* copySurface(SDL_Surface *Surface)
 {
     return SDL_ConvertSurface(Surface, Surface->format, Surface->flags);
+}
+
+
+
+
+
+
+
+char* NFont::buffer = NULL;
+NFont::AnimData NFont::data;
+
+// Static setters
+void NFont::setAnimData(void* data)
+{
+    NFont::data.userVar = data;
+}
+
+void NFont::setBuffer(unsigned int size)
+{
+    delete[] buffer;
+    if(size > 0)
+        buffer = new char[size];
+    else
+        buffer = new char[1024];
 }
 
 SDL_Surface* NFont::verticalGradient(SDL_Surface* targetSurface, Uint32 top, Uint32 bottom, int heightAdjust)
@@ -173,7 +208,7 @@ SDL_Surface* NFont::verticalGradient(SDL_Surface* targetSurface, Uint32 top, Uin
                 break;
         }
 
-        ratio = (y - 2)/float(surface->h - heightAdjust);  // the neg 3s are for full color at top and bottom
+        ratio = (y - 2)/float(surface->h - heightAdjust);  // the neg 2 is for full color at top?
 
         if(!useCK)
         {
@@ -211,30 +246,7 @@ SDL_Surface* NFont::verticalGradient(SDL_Surface* targetSurface, Uint32 top, Uin
         if(getPixel(surface, x, y) == SDL_MapRGBA(surface->format, 0xFF, 0, 0xFF, SDL_ALPHA_OPAQUE))
             continue;
 
-        int bpp = surface->format->BytesPerPixel;
-        Uint8* bits = ((Uint8 *)surface->pixels) + y*surface->pitch + x*bpp;
-
-        /* Set the pixel */
-        switch(bpp) {
-            case 1:
-                *((Uint8 *)(bits)) = (Uint8)color;
-                break;
-            case 2:
-                *((Uint16 *)(bits)) = (Uint16)color;
-                break;
-            case 3: { /* Format/endian independent */
-                r = (color >> surface->format->Rshift) & 0xFF;
-                g = (color >> surface->format->Gshift) & 0xFF;
-                b = (color >> surface->format->Bshift) & 0xFF;
-                *((bits)+surface->format->Rshift/8) = r;
-                *((bits)+surface->format->Gshift/8) = g;
-                *((bits)+surface->format->Bshift/8) = b;
-                }
-                break;
-            case 4:
-                *((Uint32 *)(bits)) = (Uint32)color;
-                break;
-        }
+        setPixel(surface, x, y, color);
 
     }
     return surface;
@@ -245,6 +257,12 @@ SDL_Surface* NFont::verticalGradient(SDL_Surface* targetSurface, Uint32 top, Uin
 NFont::NFont()
 {
     init();
+}
+
+NFont::NFont(const NFont& font)
+{
+    init();
+    load(copySurface(font.src));
 }
 
 NFont::NFont(SDL_Surface* src)
@@ -298,14 +316,25 @@ void NFont::init()
 }
 
 NFont::~NFont()
-{}
+{
+    SDL_FreeSurface(src);
+}
+
+
+NFont& NFont::operator=(const NFont& font)
+{
+    load(copySurface(font.src));
+    return *this;
+}
 
 
 // Loading
 bool NFont::load(SDL_Surface* FontSurface)
 {
+    SDL_FreeSurface(src);
+    
     src = FontSurface;
-    if (src == NULL)
+    if(src == NULL)
     {
         printf("\n ERROR: NFont given a NULL surface\n");
         return false;
@@ -406,6 +435,9 @@ bool NFont::load(SDL_Surface* FontSurface)
 #ifndef NFONT_NO_TTF
 bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
 {
+    SDL_FreeSurface(src);
+    src = NULL;
+    
     if(ttf == NULL)
         return false;
     SDL_Surface* surfs[127 - 33];
@@ -455,6 +487,9 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg, SDL_Color bg)
 
 bool NFont::load(TTF_Font* ttf, SDL_Color fg)
 {
+    SDL_FreeSurface(src);
+    src = NULL;
+    
     if(ttf == NULL)
         return false;
     SDL_Surface* surfs[127 - 33];
@@ -505,6 +540,9 @@ bool NFont::load(TTF_Font* ttf, SDL_Color fg)
 
 bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int style)
 {
+    SDL_FreeSurface(src);
+    src = NULL;
+    
     if(!TTF_WasInit() && TTF_Init() < 0)
     {
         printf("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
@@ -526,6 +564,9 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, int s
 
 bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color bg, int style)
 {
+    SDL_FreeSurface(src);
+    src = NULL;
+    
     if(!TTF_WasInit() && TTF_Init() < 0)
     {
         printf("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
@@ -546,13 +587,6 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_C
 }
 
 #endif
-
-
-
-void NFont::freeSurface()
-{
-    SDL_FreeSurface(src);
-}
 
 
 
@@ -624,7 +658,6 @@ SDL_Rect NFont::drawToSurfacePos(SDL_Surface* dest, int x, int y, NFont::AnimFn 
     data.dest = dest;
     data.src = src;
     data.text = buffer;  // Buffer for efficient drawing
-    data.height = height;
     data.charPos = charPos;
     data.charWidth = charWidth;
     data.maxX = maxPos;
@@ -827,6 +860,54 @@ SDL_Rect NFont::drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* form
     SDL_SetClipRect(dest, &oldclip);
     
     return box;
+}
+
+SDL_Rect NFont::drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...) const
+{
+    if(formatted_text == NULL)
+        return makeRect(x, y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    int y0 = y;
+    
+    using std::string;
+    string text = buffer;
+    list<string> ls = explode(text, '\n');
+    for(list<string>::iterator e = ls.begin(); e != ls.end(); e++)
+    {
+        string line = *e;
+        
+        // If line is too long, then add words one at a time until we go over.
+        if(getWidth(line.c_str()) > width)
+        {
+            list<string> words = explode(line, ' ');
+            list<string>::iterator f = words.begin();
+            line = *f;
+            f++;
+            while(f != words.end())
+            {
+                if(getWidth((line + " " + *f).c_str()) > width)
+                {
+                    drawLeft(dest, x, y, line.c_str());
+                    y += getHeight();
+                    line = *f;
+                }
+                else
+                    line += " " + *f;
+                
+                f++;
+            }
+        }
+        
+        drawLeft(dest, x, y, line.c_str());
+        y += getHeight();
+    }
+    
+    return makeRect(x, y0, width, y-y0);
 }
 
 SDL_Rect NFont::drawCenter(SDL_Surface* dest, int x, int y, const char* text) const
@@ -1075,6 +1156,11 @@ int NFont::getAscent(const char character) const
     return result;
 }
 
+int NFont::getAscent() const
+{
+    return ascent;
+}
+
 int NFont::getAscent(const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
@@ -1125,6 +1211,11 @@ int NFont::getDescent(const char character) const
     return result;
 }
 
+int NFont::getDescent() const
+{
+    return descent;
+}
+
 int NFont::getDescent(const char* formatted_text, ...) const
 {
     if(formatted_text == NULL)
@@ -1157,7 +1248,7 @@ int NFont::getLineSpacing() const
     return lineSpacing;
 }
 
-int NFont::getBaseline() const
+Uint16 NFont::getBaseline() const
 {
     return baseline;
 }
@@ -1182,41 +1273,40 @@ void NFont::setLineSpacing(int LineSpacing)
     lineSpacing = LineSpacing;
 }
 
-int NFont::setBaseline(int Baseline)
+void NFont::setBaseline()
 {
-    if(Baseline >= 0)
-        baseline = Baseline;
-    else
+    // TODO: Find a better way
+    // Get the baseline by checking a, b, and c and averaging their lowest y-value.
+    Uint32 pixel = getPixel(src, 0, src->h - 1);
+    int heightSum = 0;
+    int x, i, j;
+    for(unsigned char avgChar = 64; avgChar < 67; avgChar++)
     {
-        // Get the baseline by checking a, b, and c and averaging their lowest y-value.
-        // Is there a better way?
-        Uint32 pixel = getPixel(src, 0, src->h - 1);
-        int heightSum = 0;
-        int x, i, j;
-        for(unsigned char avgChar = 64; avgChar < 67; avgChar++)
+        x = charPos[avgChar];
+        
+        j = src->h - 1;
+        while(j > 0)
         {
-            x = charPos[avgChar];
-            
-            j = src->h - 1;
-            while(j > 0)
+            i = x;
+            while(i - x < charWidth[64])
             {
-                i = x;
-                while(i - x < charWidth[64])
+                if(getPixel(src, i, j) != pixel)
                 {
-                    if(getPixel(src, i, j) != pixel)
-                    {
-                        heightSum += j;
-                        j = 0;
-                        break;
-                    }
-                    i++;
+                    heightSum += j;
+                    j = 0;
+                    break;
                 }
-                j--;
+                i++;
             }
+            j--;
         }
-        baseline = int(heightSum/3.0f + 0.5f);  // Round up and cast
     }
-    return baseline;
+    baseline = int(heightSum/3.0f + 0.5f);  // Round up and cast
+}
+
+void NFont::setBaseline(Uint16 Baseline)
+{
+    baseline = Baseline;
 }
 
 
