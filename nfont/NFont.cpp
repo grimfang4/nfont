@@ -146,6 +146,39 @@ static inline SDL_Rect rectUnion(const SDL_Rect& A, const SDL_Rect& B)
     return result;
 }
 
+// Adapted from SDL_IntersectRect
+static inline SDL_Rect rectIntersect(const SDL_Rect& A, const SDL_Rect& B)
+{
+    SDL_Rect result;
+	int Amin, Amax, Bmin, Bmax;
+
+	// Horizontal intersection
+	Amin = A.x;
+	Amax = Amin + A.w;
+	Bmin = B.x;
+	Bmax = Bmin + B.w;
+	if(Bmin > Amin)
+	        Amin = Bmin;
+	result.x = Amin;
+	if(Bmax < Amax)
+	        Amax = Bmax;
+	result.w = Amax - Amin > 0 ? Amax - Amin : 0;
+
+	// Vertical intersection
+	Amin = A.y;
+	Amax = Amin + A.h;
+	Bmin = B.y;
+	Bmax = Bmin + B.h;
+	if(Bmin > Amin)
+	        Amin = Bmin;
+	result.y = Amin;
+	if(Bmax < Amax)
+	        Amax = Bmax;
+	result.h = Amax - Amin > 0 ? Amax - Amin : 0;
+    
+	return result;
+}
+
 static inline SDL_Rect makeRect(Sint16 x, Sint16 y, Uint16 w, Uint16 h)
 {
     SDL_Rect r = {x, y, w, h};
@@ -880,9 +913,10 @@ SDL_Rect NFont::drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* form
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
     
-    SDL_Rect oldclip;
+    SDL_Rect oldclip, newclip;
     SDL_GetClipRect(dest, &oldclip);
-    SDL_SetClipRect(dest, &box);
+    newclip = rectIntersect(oldclip, box);
+    SDL_SetClipRect(dest, &newclip);
     
     int y = box.y;
     
@@ -934,9 +968,10 @@ SDL_Rect NFont::drawBox(SDL_Surface* dest, const SDL_Rect& box, AlignEnum align,
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
     
-    SDL_Rect oldclip;
+    SDL_Rect oldclip, newclip;
     SDL_GetClipRect(dest, &oldclip);
-    SDL_SetClipRect(dest, &box);
+    newclip = rectIntersect(oldclip, box);
+    SDL_SetClipRect(dest, &newclip);
     
     int y = box.y;
     
