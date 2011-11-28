@@ -8,6 +8,9 @@ void loop_drawSomeText(SDL_Surface* screen)
     SDL_Color fontColor = {0, 0, 0, 255};
     font.load("../fonts/FreeSans.ttf", 20, fontColor);
     
+    SDL_Rect leftHalf = {0,0,screen->w/2, screen->h};
+    SDL_Rect rightHalf = {leftHalf.w,0,screen->w/2, screen->h};
+    
     bool done = false;
 	SDL_Event event;
 	while(!done)
@@ -23,9 +26,13 @@ void loop_drawSomeText(SDL_Surface* screen)
 	        }
 	    }
 	    
-	    SDL_FillRect(screen, NULL, 0xffffff);
+	    SDL_FillRect(screen, &leftHalf, 0xffffff);
+	    SDL_FillRect(screen, &rightHalf, 0x777777);
 	    
-	    font.draw(screen, 50, 50, "Hey");
+	    font.draw(screen, rightHalf.x, 50, "draw()");
+	    font.drawAlign(screen, rightHalf.x, 70, NFont::LEFT, "drawAlign(LEFT)");
+	    font.drawAlign(screen, rightHalf.x, 90, NFont::CENTER, "drawAlign(CENTER)");
+	    font.drawAlign(screen, rightHalf.x, 110, NFont::RIGHT, "drawAlign(RIGHT)");
 	    
 	    SDL_Flip(screen);
 	    
