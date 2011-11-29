@@ -1157,6 +1157,7 @@ SDL_Rect NFont::drawCenter(SDL_Surface* dest, int x, int y, const char* text) co
     if(text == NULL)
         return makeRect(x, y, 0, 0);
 
+    SDL_Rect result = makeRect(x,y,0,0);
     char* str = copyString(text);
     char* del = str;
 
@@ -1167,7 +1168,7 @@ SDL_Rect NFont::drawCenter(SDL_Surface* dest, int x, int y, const char* text) co
         if(*c == '\n')
         {
             *c = '\0';
-            drawLeft(dest, x - getWidth("%s", str)/2, y, str);
+            result = rectUnion(drawLeft(dest, x - getWidth("%s", str)/2, y, str), result);
             *c = '\n';
             c++;
             str = c;
@@ -1176,18 +1177,19 @@ SDL_Rect NFont::drawCenter(SDL_Surface* dest, int x, int y, const char* text) co
         else
             c++;
     }
-    char s[strlen(str)+1];
-    strcpy(s, str);
-    delete[] del;
     
-    return drawLeft(dest, x - getWidth("%s", s)/2, y, s);
+    result = rectUnion(drawLeft(dest, x - getWidth("%s", str)/2, y, str), result);
+    
+    delete[] del;
+    return result;
 }
 
 SDL_Rect NFont::drawRight(SDL_Surface* dest, int x, int y, const char* text) const
 {
     if(text == NULL)
         return makeRect(x, y, 0, 0);
-
+    
+    SDL_Rect result = makeRect(x,y,0,0);
     char* str = copyString(text);
     char* del = str;
 
@@ -1196,7 +1198,7 @@ SDL_Rect NFont::drawRight(SDL_Surface* dest, int x, int y, const char* text) con
         if(*c == '\n')
         {
             *c = '\0';
-            drawLeft(dest, x - getWidth("%s", str), y, str);
+            result = rectUnion(drawLeft(dest, x - getWidth("%s", str), y, str), result);
             *c = '\n';
             c++;
             str = c;
@@ -1205,11 +1207,11 @@ SDL_Rect NFont::drawRight(SDL_Surface* dest, int x, int y, const char* text) con
         else
             c++;
     }
-    char s[strlen(str)+1];
-    strcpy(s, str);
-    delete[] del;
     
-    return drawLeft(dest, x - getWidth("%s", s), y, s);
+    result = rectUnion(drawLeft(dest, x - getWidth("%s", str), y, str), result);
+    
+    delete[] del;
+    return result;
 }
 
 
@@ -1588,11 +1590,11 @@ void bounce(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& da
     
     if(data.align == NFont::CENTER)
     {
-        x -= data.font->getWidth(data.text)/2;
+        x -= data.font->getWidth("%s", data.text)/2;
     }
     else if(data.align == NFont::RIGHT)
     {
-        x -= data.font->getWidth(data.text);
+        x -= data.font->getWidth("%s", data.text);
     }
 }
 
@@ -1603,11 +1605,11 @@ void wave(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data
     
     if(data.align == NFont::CENTER)
     {
-        x -= data.font->getWidth(data.text)/2;
+        x -= data.font->getWidth("%s", data.text)/2;
     }
     else if(data.align == NFont::RIGHT)
     {
-        x -= data.font->getWidth(data.text);
+        x -= data.font->getWidth("%s", data.text);
     }
 }
 
@@ -1618,12 +1620,12 @@ void stretch(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& d
     if(data.align == NFont::CENTER)
     {
         place -= 0.5f;
-        x -= data.font->getWidth(data.text)/2;
+        x -= data.font->getWidth("%s", data.text)/2;
     }
     else if(data.align == NFont::RIGHT)
     {
         place -= 1.0f;
-        x -= data.font->getWidth(data.text);
+        x -= data.font->getWidth("%s", data.text);
     }
     x += int(params.amplitudeX*(place)*cos(2*M_PI*params.frequencyX*params.t));
 }
@@ -1633,11 +1635,11 @@ void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& dat
 {
     if(data.align == NFont::CENTER)
     {
-        x -= data.font->getWidth(data.text)/2;
+        x -= data.font->getWidth("%s", data.text)/2;
     }
     else if(data.align == NFont::RIGHT)
     {
-        x -= data.font->getWidth(data.text);
+        x -= data.font->getWidth("%s", data.text);
     }
     x += int(params.amplitudeX*sin(2*M_PI*params.frequencyX*params.t));
     y += int(params.amplitudeY*sin(2*M_PI*params.frequencyY*params.t));
@@ -1651,11 +1653,11 @@ void circle(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& da
     
     if(data.align == NFont::LEFT)
     {
-        x += data.font->getWidth(data.text)/2;
+        x += data.font->getWidth("%s", data.text)/2;
     }
     else if(data.align == NFont::RIGHT)
     {
-        x -= data.font->getWidth(data.text)/2;
+        x -= data.font->getWidth("%s", data.text)/2;
     }
     
     float place = float(data.index + 1) / strlen(data.text);

@@ -1,74 +1,52 @@
-
-// Uncomment if you want to use the SDL_ttf loading feature
-//#define NF_USE_TTF
-
 /*
-NFontC v1.71: A bitmap font struct for SDL
-by Jonathan Dearborn 2-11-09
+NFontC v3.0.0: A bitmap font struct for SDL
+by Jonathan Dearborn 11-28-11
 
 Requires:
     SDL ("SDL.h") [www.libsdl.org]
+    SDL_ttf ("SDL_ttf.h") [www.libsdl.org]
 
 Notes:
-    NFont improves on the SFont formula by having less typing in each function
-    call (due to destination pointer), text-block alignment, full
-    support for the newline character ('\n'), color-changing, and extended ASCII 
-    support.  It accepts only SDL_Surfaces so that any image format you can load 
+    NFont is a bitmap font library with text-block alignment, full
+    support for the newline character ('\n'), and position animation.  
+    It accepts SDL_Surfaces so that any image format you can load 
     can be used as an NFont.
-
-    NFont uses a pointer (SDL_Surface*) to handle the destination
-    surface.  Be aware that you will need to use setDest() if you replace the
-    memory that it points to (like when using screen = SDL_SetVideoMode()).
     
-    NFont can use standard SFont bitmaps or extended bitmaps.  The standard bitmaps
-    have the following characters (ASCII 33-126) separated by pink (255, 0, 255) pixels in the topmost
-    row:
+    NFont natively loads SFont bitmaps and TrueType fonts with SDL_ttf.  The 
+    standard bitmaps have the following characters (ASCII 33-126) separated by 
+    pink (255, 0, 255) pixels in the topmost row:
     ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
     
-    And the extended bitmaps have these (ASCII 161-255):
-    ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~ ¡ ¢ £ ¤ ¥ ¦ § ¨ © ª « ¬ ­ ® ¯ ° ± ² ³ ´ µ ¶ · ¸ ¹ º » ¼ ½ ¾ ¿ À Á Â Ã Ä Å Æ Ç È É Ê Ë Ì Í Î Ï Ð Ñ Ò Ó Ô Õ Ö × Ø Ù Ú Û Ü Ý Þ ß à á â ã ä å æ ç è é ê ë ì í î ï ð ñ ò ó ô õ ö ÷ ø ù ú û ü ý þ ÿ
-    
-    NFont can also load SDL_ttf fonts.  Uncomment the define at the 
-    top of this file and call NF_LoadTTF() to use the flexibility of NFont with
-    TrueType fonts.
-    
-    NFont gives you the ability to control the font in two ways: It's position 
-    or it's everything.  By using drawPos() or drawPosX(), you can 
-    use a function you create to handle the final positions of the drawn 
-    characters.  With drawAll() and drawAllX(), you can handle everything that 
-    the font does (please use my drawToSurface() function as a reference).
+    Define NFONT_NO_TTF before including NFont.h to disable TrueType fonts.
 
     If you come up with something cool using NFont, I'd love to hear about it.
-    Any comments can be sent to GrimFang4@hotmail.com
+    Any comments can be sent to GrimFang4 [at] gmail [dot] com
 
 License:
     The short:
-    Use it however you'd like, but give me credit if you share this code
-    or a compiled version of the code, whether or not it is modified.
+    Use it however you'd like, but keep the copyright and license notice 
+    whenever these files or parts of them are distributed in uncompiled form.
     
     The long:
-    Copyright (c) 2009, Jonathan Dearborn
-    All rights reserved.
+Copyright (c) 2011 Jonathan Dearborn
 
-Redistribution and use in source and binary forms, with or without modification, are permitted 
-provided that the following conditions are met:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    * Redistributions of source code must retain the above copyright notice, this list 
-      of conditions and the following disclaimer.
-    * Redistributions in binary form, excluding commercial executables, must reproduce 
-      the above copyright notice, this list of conditions and the following disclaimer 
-      in the documentation and/or other materials provided with the distribution.
-    * The names of its contributors may not be used to endorse or promote products 
-      derived from this software without specific prior written permission.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS 
-OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY 
-WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 Control:
     void         NF_Init(NFont* font);
@@ -250,11 +228,13 @@ Changes:
 
 #include "SDL.h"
 
-#ifdef NF_USE_TTF
+#ifndef NFONT_NO_TTF
     #include "SDL_ttf.h"
 #endif
 
 typedef struct NFont NFont;
+
+typedef enum NF_AlignEnum {NF_LEFT, NF_CENTER, NF_RIGHT} NF_AlignEnum;
 
 typedef struct NFontAnim_Data
 {
@@ -263,9 +243,9 @@ typedef struct NFontAnim_Data
     SDL_Surface* dest;
     SDL_Surface* src;
     char* text;  // Buffer for efficient drawing
-    int height;
+    Uint16 height;
     int* charPos;
-    int* charWidth;
+    Uint16* charWidth;
     int maxX;
     
     int index;
@@ -274,19 +254,30 @@ typedef struct NFontAnim_Data
     int lineNum;
     int startX;
     int startY;
+    NF_AlignEnum align;
+    
     void* userVar;
+    
+    SDL_Rect dirtyRect;
 } NFontAnim_Data;
+
+typedef struct NFontAnim_Params
+{
+    float t;
+    float amplitudeX;
+    float amplitudeY;
+    float frequencyX;
+    float frequencyY;
+} NFontAnim_Params;
 
 struct NFont
 {
     SDL_Surface* src;  // bitmap source of characters
-    SDL_Surface* dest; // Destination to blit to
-    Uint8 cleanUp;
 
-    int height;
+    Uint16 height;
 
-    int maxWidth;
-    int baseline;
+    Uint16 maxWidth;
+    Uint16 baseline;
     int ascent;
     int descent;
 
@@ -294,7 +285,7 @@ struct NFont
     int letterSpacing;
 
     int charPos[256];
-    int charWidth[256];
+    Uint16 charWidth[256];
     int maxPos;
 
     char* buffer;  // Buffer for efficient drawing
@@ -306,7 +297,7 @@ struct NFont
 
 
 // Function pointer
-typedef void (*NFontAnim_Fn)(int*, int*, NFontAnim_Data*);
+typedef void (*NFontAnim_Fn)(int*, int*, NFontAnim_Params, NFontAnim_Data*);
 
 #ifdef __cplusplus
 extern "C" {
@@ -318,7 +309,6 @@ void NF_Free(NFont* font);
 void NF_Push(NFont* font);
 NFont* NF_Pop();
 
-SDL_Surface* NF_GetDest();
 void NF_SetSpacing(int LetterSpacing);
 int NF_GetSpacing();
 void NF_SetLineSpacing(int LineSpacing);
@@ -327,26 +317,27 @@ int NF_GetBaseline();
 int NF_GetMaxWidth();
 void NF_SetBuffer(unsigned int size);
 void NF_SetCleanUp(Uint8 enable);
-void NF_SetDest(SDL_Surface* Dest);
-Uint8 NF_ResetFont(SDL_Surface* Dest, SDL_Surface* FontSurface, Uint8 CleanUp);
-Uint32 NF_GetPixel(SDL_Surface *Surface, int x, int y);
+Uint8 NF_Load(SDL_Surface* FontSurface);
 
 SDL_Surface* NF_NewColorSurface(Uint32 top, Uint32 bottom, int heightAdjust);
 
-#ifdef NF_USE_TTF
+#ifndef NFONT_NO_TTF
 
-void NF_LoadTTF(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg);
+void NF_LoadTTF(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color* bg, int style);
+void NF_LoadTTF_Font(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg);
 
 #endif
 
-void NF_DrawToSurface(int x, int y, const char* text);
-char* NF_CopyString(const char* c);
-void NF_Draw(int x, int y, const char* formatted_text, ...);
-void NF_DrawCenter(int x, int y, const char* formatted_text, ...);
-void NF_DrawRight(int x, int y, const char* formatted_text, ...);
+SDL_Rect NF_Draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...);
+SDL_Rect NF_DrawAlign(SDL_Surface* dest, int x, int y, NF_AlignEnum align, const char* formatted_text, ...);
+SDL_Rect NF_DrawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...);
+SDL_Rect NF_DrawColumnAlign(SDL_Surface* dest, int x, int y, Uint16 width, NF_AlignEnum align, const char* formatted_text, ...);
+SDL_Rect NF_DrawBox(SDL_Surface* dest, SDL_Rect box, const char* formatted_text, ...);
+SDL_Rect NF_DrawBoxAlign(SDL_Surface* dest, SDL_Rect box, NF_AlignEnum align, const char* formatted_text, ...);
+
+
 int NF_GetHeight(const char* formatted_text, ...);
 int NF_GetWidth(const char* formatted_text, ...);
-Uint8 NF_SetFont(SDL_Surface* FontSurface, Uint8 CleanUp);
 
 
 int NF_SetBaseline(int Baseline);
@@ -360,14 +351,18 @@ int NF_GetDescent(const char* formatted_text, ...);
 
 
 
-void NF_DrawPos(int x, int y, NFontAnim_Fn posFn, const char* text, ...);
+NFontAnim_Params NF_AnimParams(float t, float amplitudeX, float frequencyX, float amplitudeY, float frequencyY);
 
-void NF_DrawPosX(int x, int y, NFontAnim_Fn posFn, void* userVar, const char* text, ...);
+void NF_DrawPos(SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, const char* text, ...);
+void NF_DrawPosAlign(SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, NF_AlignEnum align, const char* text, ...);
 
-void NF_DrawAll(int x, int y, NFontAnim_Fn allFn, const char* text, ...);
 
-void NF_DrawAllX(int x, int y, NFontAnim_Fn allFn, void* userVar, const char* text, ...);
-
+// Built-in animations
+void NF_bounce(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data);
+void NF_wave(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data);
+void NF_stretch(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data);
+void NF_shake(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data);
+void NF_circle(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data);
 
 
 #ifdef __cplusplus

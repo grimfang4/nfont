@@ -1,11 +1,100 @@
 /*
-NFontC v1.71: A bitmap font struct for SDL
-by Jonathan Dearborn 2-11-09
+NFontC v3.0.0: A bitmap font struct for SDL
+by Jonathan Dearborn 11-28-11
 */
 #include "nfontc.h"
 #include "stdarg.h"
+#include <math.h>
 
-void NF_DrawToSurfacePos(int x, int y, NFontAnim_Fn posFn);
+#define MIN(a,b) ((a) < (b)? (a) : (b))
+#define MAX(a,b) ((a) > (b)? (a) : (b))
+
+
+static inline SDL_Surface* createSurface24(Uint32 width, Uint32 height)
+{
+    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 24, 0xFF0000, 0x00FF00, 0x0000FF, 0);
+    #else
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 24, 0x0000FF, 0x00FF00, 0xFF0000, 0);
+    #endif
+}
+
+static inline SDL_Surface* createSurface32(Uint32 width, Uint32 height)
+{
+    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+    #else
+        return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+    #endif
+}
+static inline SDL_Rect rectUnion(SDL_Rect* A, SDL_Rect* B)
+{
+    Sint16 x,x2,y,y2;
+    x = MIN(A->x, B->x);
+    y = MIN(A->y, B->y);
+    x2 = MAX(A->x+A->w, B->x+B->w);
+    y2 = MAX(A->y+A->h, B->y+B->h);
+    SDL_Rect result = {x, y, (Uint16)(x2 - x), (Uint16)(y2 - y)};
+    return result;
+}
+
+// Adapted from SDL_IntersectRect
+static inline SDL_Rect rectIntersect(SDL_Rect A, SDL_Rect B)
+{
+    SDL_Rect result;
+	int Amin, Amax, Bmin, Bmax;
+
+	// Horizontal intersection
+	Amin = A.x;
+	Amax = Amin + A.w;
+	Bmin = B.x;
+	Bmax = Bmin + B.w;
+	if(Bmin > Amin)
+	        Amin = Bmin;
+	result.x = Amin;
+	if(Bmax < Amax)
+	        Amax = Bmax;
+	result.w = Amax - Amin > 0 ? Amax - Amin : 0;
+
+	// Vertical intersection
+	Amin = A.y;
+	Amax = Amin + A.h;
+	Bmin = B.y;
+	Bmax = Bmin + B.h;
+	if(Bmin > Amin)
+	        Amin = Bmin;
+	result.y = Amin;
+	if(Bmax < Amax)
+	        Amax = Bmax;
+	result.h = Amax - Amin > 0 ? Amax - Amin : 0;
+    
+	return result;
+}
+
+static inline SDL_Rect makeRect(Sint16 x, Sint16 y, Uint16 w, Uint16 h)
+{
+    SDL_Rect r = {x, y, w, h};
+    return r;
+}
+
+static inline SDL_Surface* copySurface(SDL_Surface *Surface)
+{
+    return SDL_ConvertSurface(Surface, Surface->format, Surface->flags);
+}
+
+
+
+NFontAnim_Params NF_AnimParams(float t, float amplitudeX, float frequencyX, float amplitudeY, float frequencyY)
+{
+    NFontAnim_Params p;
+    p.t = t;
+    p.amplitudeX = amplitudeX;
+    p.amplitudeY = amplitudeY;
+    p.frequencyX = frequencyX;
+    p.frequencyY = frequencyY;
+    return p;
+}
+
 
 typedef struct NF_Node NF_Node;
 
@@ -49,8 +138,6 @@ void NF_Init(NFont* font)
     if(font == NULL)
         return;
     font->src = NULL;
-    font->dest = NULL;
-    font->cleanUp = 0;
 
     font->maxPos = 0;
 
@@ -80,8 +167,6 @@ NFont* NF_New()
 {
     NFont* font = (NFont*)malloc(sizeof(NFont));
     font->src = NULL;
-    font->dest = NULL;
-    font->cleanUp = 0;
 
     font->maxPos = 0;
 
@@ -113,17 +198,8 @@ void NF_Free(NFont* font)
     if(font == NULL)
         return;
     free(font->buffer);
-    if(font->cleanUp)
-        SDL_FreeSurface(font->src);
+    SDL_FreeSurface(font->src);
     free(font);
-}
-
-
-SDL_Surface* NF_GetDest()
-{
-    if(NFont_current == NULL)
-        return NULL;
-    return NFont_current->font->dest;
 }
 
 void NF_SetSpacing(int LetterSpacing)
@@ -180,33 +256,7 @@ void NF_SetBuffer(unsigned int size)
         font->buffer = (char*)malloc(1024);
 }
 
-void NF_SetCleanUp(Uint8 enable)
-{
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return;
-    NFont* font = NFont_current->font;
-    font->cleanUp = enable;
-}
-
-void NF_SetDest(SDL_Surface* Dest)
-{
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return;
-    NFont* font = NFont_current->font;
-    font->dest = Dest;
-}
-
-Uint8 NF_ResetFont(SDL_Surface* Dest, SDL_Surface* FontSurface, Uint8 CleanUp)
-{
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return 0;
-    NFont* font = NFont_current->font;
-    font->dest = Dest;
-
-    return NF_SetFont(FontSurface, CleanUp);
-}
-
-Uint32 NF_GetPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
+static Uint32 NF_GetPixel(SDL_Surface *Surface, int x, int y)  // No Alpha?
 {
     Uint8* bits;
     Uint32 bpp;
@@ -348,8 +398,35 @@ SDL_Surface* NF_NewColorSurface(Uint32 top, Uint32 bottom, int heightAdjust)
 }
 
 
-#ifdef NF_USE_TTF
-void NF_LoadTTF(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg)
+#ifndef NFONT_NO_TTF
+
+void NF_LoadTTF(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color* bg, int style)
+{
+    if(NFont_current == NULL)
+        return;
+    
+    SDL_FreeSurface(NFont_current->font->src);
+    NFont_current->font->src = NULL;
+    
+    if(!TTF_WasInit() && TTF_Init() < 0)
+    {
+        printf("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
+        return;
+    }
+    
+    TTF_Font* ttf = TTF_OpenFont(filename_ttf, pointSize);
+    
+    if(ttf == NULL)
+    {
+        printf("Unable to load TrueType font: %s \n", TTF_GetError());
+        return;
+    }
+    TTF_SetFontStyle(ttf, style);
+    NF_LoadTTF_Font(ttf, fg, bg);
+    TTF_CloseFont(ttf);
+}
+
+void NF_LoadTTF_Font(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg)
 {
     if(NFont_current == NULL || ttf == NULL)
         return;
@@ -373,19 +450,11 @@ void NF_LoadTTF(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg)
     SDL_Surface* result;
     if(bg == NULL)
     {
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-    #else
-        result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-    #endif
+        result = createSurface32(width + 127 - 33 + 1,height);
     }
     else
     {
-    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,24, 0xFF0000, 0x00FF00, 0x0000FF, 0);
-    #else
-        result = SDL_CreateRGBSurface(SDL_SWSURFACE,width + 127 - 33 + 1,height,24, 0x0000FF, 0x00FF00, 0xFF0000, 0);
-    #endif
+        result = createSurface24(width + 127 - 33 + 1,height);
     }
     Uint32 pink = SDL_MapRGBA(result->format, 255, 0, 255, SDL_ALPHA_OPAQUE);
     Uint32 bgcolor;
@@ -421,28 +490,26 @@ void NF_LoadTTF(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg)
     if(bg == NULL)
         SDL_SetAlpha(result, SDL_SRCALPHA, SDL_ALPHA_OPAQUE);
     
-    NF_SetFont(result, 1);
+    NF_Load(result);
 }
 
 #endif
 
-void NF_DrawToSurface(int x, int y, const char* text)
+static SDL_Rect NF_DrawToSurface(NFont* font, SDL_Surface* dest, int x, int y, const char* text)
 {
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return;
-    NFont* font = NFont_current->font;
+    if(font == NULL || text == NULL || font->src == NULL)
+        return makeRect(x, y, 0, 0);
     
     const char* c = text;
     unsigned char num;
     SDL_Rect srcRect, dstRect, copyS, copyD;
     
-    if(c == NULL || font->src == NULL || font->dest == NULL)
-        return;
-    
     srcRect.y = font->baseline - font->ascent;
     srcRect.h = dstRect.h = font->height;
     dstRect.x = x;
     dstRect.y = y;
+    
+    font->data.dirtyRect = makeRect(x,y,0,0);
     
     int newlineX = x;
     
@@ -464,9 +531,9 @@ void NF_DrawToSurface(int x, int y, const char* text)
         // Skip bad characters
         if(ctest < 33 || (ctest > 126 && ctest < 161))
             continue;
-        if(dstRect.x >= font->dest->w)
+        if(dstRect.x >= dest->w)
             continue;
-        if(dstRect.y >= font->dest->h)
+        if(dstRect.y >= dest->h)
             continue;
         
         num = ctest - 33;  // Get array index
@@ -476,60 +543,38 @@ void NF_DrawToSurface(int x, int y, const char* text)
         srcRect.w = dstRect.w = font->charWidth[num];
         copyS = srcRect;
         copyD = dstRect;
-        SDL_BlitSurface(font->src, &srcRect, font->dest, &dstRect);
+        SDL_BlitSurface(font->src, &srcRect, dest, &dstRect);
+        if(font->data.dirtyRect.w == 0 || font->data.dirtyRect.h == 0)
+            font->data.dirtyRect = dstRect;
+        else
+            font->data.dirtyRect = rectUnion(&font->data.dirtyRect, &dstRect);
         srcRect = copyS;
         dstRect = copyD;
         
         dstRect.x += dstRect.w + font->letterSpacing;
     }
     
+    return font->data.dirtyRect;
 }
 
-char* NF_CopyString(const char* c)
+static char* NF_CopyString(const char* c)
 {
-    if(c == NULL) return NULL;
-
-    int count = 0;
-    for(; c[count] != '\0'; count++);
-
-    char* result = (char*)malloc(count+1);
+    if(c == NULL)
+        return NULL;
     
-    int i;
-    for(i = 0; i < count; i++)
-    {
-        result[i] = c[i];
-    }
+    char* result = (char*)malloc(strlen(c)+1);
+    strcpy(result, c);
 
-    result[count] = '\0';
     return result;
 }
 
-void NF_Draw(int x, int y, const char* formatted_text, ...)
+static SDL_Rect NF_DrawCenter(NFont* font, SDL_Surface* dest, int x, int y, const char* text)
 {
-    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
-        return;
-    NFont* font = NFont_current->font;
+    if(font == NULL || text == NULL)
+        return makeRect(x,y,0,0);
 
-    va_list lst;
-    va_start(lst, formatted_text);
-    vsprintf(font->buffer, formatted_text, lst);
-    va_end(lst);
-
-    NF_DrawToSurface(x, y, font->buffer);
-}
-
-void NF_DrawCenter(int x, int y, const char* formatted_text, ...)
-{
-    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
-        return;
-    NFont* font = NFont_current->font;
-
-    va_list lst;
-    va_start(lst, formatted_text);
-    vsprintf(font->buffer, formatted_text, lst);
-    va_end(lst);
-
-    char* str = NF_CopyString(font->buffer);
+    SDL_Rect result = makeRect(x,y,0,0);
+    char* str = NF_CopyString(text);
     char* del = str;
 
     // Go through str, when you find a \n, replace it with \0 and print it
@@ -540,7 +585,8 @@ void NF_DrawCenter(int x, int y, const char* formatted_text, ...)
         if(*c == '\n')
         {
             *c = '\0';
-            NF_DrawToSurface(x - NF_GetWidth("%s", str)/2, y, str);
+            SDL_Rect temp = NF_DrawToSurface(font, dest, x - NF_GetWidth("%s", str)/2, y, str);
+            result = rectUnion(&temp, &result);
             *c = '\n';
             c++;
             str = c;
@@ -549,23 +595,21 @@ void NF_DrawCenter(int x, int y, const char* formatted_text, ...)
         else
             c++;
     }
-    NF_DrawToSurface(x - NF_GetWidth("%s", str)/2, y, str);
+    SDL_Rect temp = NF_DrawToSurface(font, dest, x - NF_GetWidth("%s", str)/2, y, str);
+    result = rectUnion(&temp, &result);
 
     free(del);
+    
+    return result;
 }
 
-void NF_DrawRight(int x, int y, const char* formatted_text, ...)
+static SDL_Rect NF_DrawRight(NFont* font, SDL_Surface* dest, int x, int y, const char* text)
 {
-    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
-        return;
-    NFont* font = NFont_current->font;
+    if(font == NULL || text == NULL)
+        return makeRect(x,y,0,0);
 
-    va_list lst;
-    va_start(lst, formatted_text);
-    vsprintf(font->buffer, formatted_text, lst);
-    va_end(lst);
-
-    char* str = NF_CopyString(font->buffer);
+    SDL_Rect result = makeRect(x,y,0,0);
+    char* str = NF_CopyString(text);
     char* del = str;
 
     char* c;
@@ -574,7 +618,8 @@ void NF_DrawRight(int x, int y, const char* formatted_text, ...)
         if(*c == '\n')
         {
             *c = '\0';
-            NF_DrawToSurface(x - NF_GetWidth("%s", str), y, str);
+            SDL_Rect temp = NF_DrawToSurface(font, dest, x - NF_GetWidth("%s", str), y, str);
+            result = rectUnion(&temp, &result);
             *c = '\n';
             c++;
             str = c;
@@ -583,10 +628,506 @@ void NF_DrawRight(int x, int y, const char* formatted_text, ...)
         else
             c++;
     }
-    NF_DrawToSurface(x - NF_GetWidth("%s", str), y, str);
+    
+    SDL_Rect temp = NF_DrawToSurface(font, dest, x - NF_GetWidth("%s", str), y, str);
+    result = rectUnion(&temp, &result);
 
     free(del);
+    
+    return result;
 }
+
+SDL_Rect NF_Draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...)
+{
+    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
+        return makeRect(x, y, 0, 0);
+    NFont* font = NFont_current->font;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(font->buffer, formatted_text, lst);
+    va_end(lst);
+
+    return NF_DrawToSurface(font, dest, x, y, font->buffer);
+}
+
+SDL_Rect NF_DrawAlign(SDL_Surface* dest, int x, int y, NF_AlignEnum align, const char* formatted_text, ...)
+{
+    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
+        return makeRect(x, y, 0, 0);
+    NFont* font = NFont_current->font;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(font->buffer, formatted_text, lst);
+    va_end(lst);
+    
+    switch(align)
+    {
+        case NF_LEFT:
+            return NF_DrawToSurface(font, dest, x, y, font->buffer);
+        case NF_CENTER:
+            return NF_DrawCenter(font, dest, x, y, font->buffer);
+        case NF_RIGHT:
+            return NF_DrawRight(font, dest, x, y, font->buffer);
+    }
+    return makeRect(x,y,0,0);
+}
+
+
+SDL_Rect NF_DrawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...)
+{
+    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
+        return makeRect(x, y, 0, 0);
+    NFont* font = NFont_current->font;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(font->buffer, formatted_text, lst);
+    va_end(lst);
+    
+    int y0 = y;
+    
+    char buffer[1024];
+    strcpy(buffer, font->buffer);
+    char line[1024];
+    char* word;
+    char part[1024];
+    int i = 0;
+    char* l;
+    for(l = buffer; 1; l++)
+    {
+        if(*l == '\n' || *l == '\0')
+        {
+            line[i] = '\0';
+            
+            // Draw line
+            int j = 0;
+            word = part;
+            char* w;
+            for(w = line; 1; w++)
+            {
+                if(*w == ' ' || *w == '\0')
+                {
+                    word[j] = '\0';
+                    // If the new word is too long, draw the old stuff and continue with the new word
+                    if(NF_GetWidth("%s", part) > width)
+                    {
+                        char firstOfWord = *(word-1);  // Save to replace later
+                        if(word != part)
+                            *(word-1) = '\0';  // End 'part' for drawing
+                        
+                        NF_DrawToSurface(font, dest, x, y, part);
+                        y += NF_GetHeight(NULL);
+                        
+                        // Restore 'word'
+                        if(word != part)
+                            *(word-1) = firstOfWord;
+                        // Copy new word down to the start
+                        word[j] = '\0';
+                        strcpy(part, word);
+                        part[j] = ' ';
+                        word = &part[j+1];
+                        
+                        j = 0;
+                    }
+                    else
+                    {
+                        word[j] = ' ';
+                        // Not too long, so restart 'word' here and keep going.
+                        word = &word[j+1];
+                        j = 0;
+                    }
+                    
+                    if(*w == '\0')
+                        break;
+                }
+                else
+                {
+                    word[j] = *w;
+                    j++;
+                }
+            }
+            
+            word[j] = '\0';
+            NF_DrawToSurface(font, dest, x, y, part);
+            y += NF_GetHeight(NULL);
+            
+            i = 0;
+            
+            if(*l == '\0')
+                break;
+        }
+        else
+        {
+            line[i] = *l;
+            i++;
+        }
+    }
+    
+    return makeRect(x, y0, width, y-y0);
+}
+
+SDL_Rect NF_DrawColumnAlign(SDL_Surface* dest, int x, int y, Uint16 width, NF_AlignEnum align, const char* formatted_text, ...)
+{
+    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
+        return makeRect(x, y, 0, 0);
+    NFont* font = NFont_current->font;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(font->buffer, formatted_text, lst);
+    va_end(lst);
+    
+    int y0 = y;
+    
+    char buffer[1024];
+    strcpy(buffer, font->buffer);  // font->buffer is overwritten by NF_GetWidth()
+    char line[1024];
+    char* word;
+    char part[1024];
+    int i = 0;
+    char* l;
+    for(l = buffer; 1; l++)
+    {
+        if(*l == '\n' || *l == '\0')
+        {
+            line[i] = '\0';
+            
+            // Draw line
+            int j = 0;
+            word = part;
+            char* w;
+            for(w = line; 1; w++)
+            {
+                if(*w == ' ' || *w == '\0')
+                {
+                    word[j] = '\0';
+                    // If the new word is too long, draw the old stuff and continue with the new word
+                    if(NF_GetWidth("%s", part) > width)
+                    {
+                        char firstOfWord = *(word-1);  // Save to replace later
+                        if(word != part)
+                            *(word-1) = '\0';  // End 'part' for drawing
+                        
+                        switch(align)
+                        {
+                            case NF_LEFT:
+                                NF_DrawToSurface(font, dest, x, y, part);
+                                break;
+                            case NF_CENTER:
+                                NF_DrawCenter(font, dest, x, y, part);
+                                break;
+                            case NF_RIGHT:
+                                NF_DrawRight(font, dest, x, y, part);
+                                break;
+                        }
+                        y += NF_GetHeight(NULL);
+                        
+                        // Restore 'word'
+                        if(word != part)
+                            *(word-1) = firstOfWord;
+                        // Copy new word down to the start
+                        word[j] = '\0';
+                        strcpy(part, word);
+                        part[j] = ' ';
+                        word = &part[j+1];
+                        
+                        j = 0;
+                    }
+                    else
+                    {
+                        word[j] = ' ';
+                        // Not too long, so restart 'word' here and keep going.
+                        word = &word[j+1];
+                        j = 0;
+                    }
+                    
+                    if(*w == '\0')
+                        break;
+                }
+                else
+                {
+                    word[j] = *w;
+                    j++;
+                }
+            }
+            
+            word[j] = '\0';
+            switch(align)
+            {
+                case NF_LEFT:
+                    NF_DrawToSurface(font, dest, x, y, part);
+                    break;
+                case NF_CENTER:
+                    NF_DrawCenter(font, dest, x, y, part);
+                    break;
+                case NF_RIGHT:
+                    NF_DrawRight(font, dest, x, y, part);
+                    break;
+            }
+            y += NF_GetHeight(NULL);
+            
+            i = 0;
+            
+            if(*l == '\0')
+                break;
+        }
+        else
+        {
+            line[i] = *l;
+            i++;
+        }
+    }
+    
+    
+    return makeRect(x, y0, width, y-y0);
+}
+
+
+
+SDL_Rect NF_DrawBox(SDL_Surface* dest, SDL_Rect box, const char* formatted_text, ...)
+{
+    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
+        return makeRect(box.x, box.y, 0, 0);
+    NFont* font = NFont_current->font;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(font->buffer, formatted_text, lst);
+    va_end(lst);
+    
+    SDL_Rect oldclip, newclip;
+    SDL_GetClipRect(dest, &oldclip);
+    newclip = rectIntersect(oldclip, box);
+    SDL_SetClipRect(dest, &newclip);
+    
+    int x = box.x;
+    int y = box.y;
+    Uint16 width = box.w;
+    
+    char buffer[1024];
+    strcpy(buffer, font->buffer);
+    char line[1024];
+    char* word;
+    char part[1024];
+    int i = 0;
+    char* l;
+    for(l = buffer; 1; l++)
+    {
+        if(*l == '\n' || *l == '\0')
+        {
+            line[i] = '\0';
+            
+            // Draw line
+            int j = 0;
+            word = part;
+            char* w;
+            for(w = line; 1; w++)
+            {
+                if(*w == ' ' || *w == '\0')
+                {
+                    word[j] = '\0';
+                    // If the new word is too long, draw the old stuff and continue with the new word
+                    if(NF_GetWidth("%s", part) > width)
+                    {
+                        char firstOfWord = *(word-1);  // Save to replace later
+                        if(word != part)
+                            *(word-1) = '\0';  // End 'part' for drawing
+                        
+                        NF_DrawToSurface(font, dest, x, y, part);
+                        y += NF_GetHeight(NULL);
+                        
+                        // Restore 'word'
+                        if(word != part)
+                            *(word-1) = firstOfWord;
+                        // Copy new word down to the start
+                        word[j] = '\0';
+                        strcpy(part, word);
+                        part[j] = ' ';
+                        word = &part[j+1];
+                        
+                        j = 0;
+                    }
+                    else
+                    {
+                        word[j] = ' ';
+                        // Not too long, so restart 'word' here and keep going.
+                        word = &word[j+1];
+                        j = 0;
+                    }
+                    
+                    if(*w == '\0')
+                        break;
+                }
+                else
+                {
+                    word[j] = *w;
+                    j++;
+                }
+            }
+            
+            word[j] = '\0';
+            NF_DrawToSurface(font, dest, x, y, part);
+            y += NF_GetHeight(NULL);
+            
+            i = 0;
+            
+            if(*l == '\0')
+                break;
+        }
+        else
+        {
+            line[i] = *l;
+            i++;
+        }
+    }
+    
+    SDL_SetClipRect(dest, &oldclip);
+    
+    return box;
+}
+
+SDL_Rect NF_DrawBoxAlign(SDL_Surface* dest, SDL_Rect box, NF_AlignEnum align, const char* formatted_text, ...)
+{
+    if(NFont_current == NULL || NFont_current->font == NULL || formatted_text == NULL)
+        return makeRect(box.x, box.y, 0, 0);
+    NFont* font = NFont_current->font;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(font->buffer, formatted_text, lst);
+    va_end(lst);
+    
+    SDL_Rect oldclip, newclip;
+    SDL_GetClipRect(dest, &oldclip);
+    newclip = rectIntersect(oldclip, box);
+    SDL_SetClipRect(dest, &newclip);
+    
+    int x = box.x;
+    int y = box.y;
+    Uint16 width = box.w;
+    switch(align)
+    {
+        case NF_LEFT:
+            break;
+        case NF_CENTER:
+            x += width/2;
+            break;
+        case NF_RIGHT:
+            x += width;
+            break;
+    }
+    
+    char buffer[1024];
+    strcpy(buffer, font->buffer);  // font->buffer is overwritten by NF_GetWidth()
+    char line[1024];
+    char* word;
+    char part[1024];
+    int i = 0;
+    char* l;
+    for(l = buffer; 1; l++)
+    {
+        if(*l == '\n' || *l == '\0')
+        {
+            line[i] = '\0';
+            
+            // Draw line
+            int j = 0;
+            word = part;
+            char* w;
+            for(w = line; 1; w++)
+            {
+                if(*w == ' ' || *w == '\0')
+                {
+                    word[j] = '\0';
+                    // If the new word is too long, draw the old stuff and continue with the new word
+                    if(NF_GetWidth("%s", part) > width)
+                    {
+                        char firstOfWord = *(word-1);  // Save to replace later
+                        if(word != part)
+                            *(word-1) = '\0';  // End 'part' for drawing
+                        
+                        switch(align)
+                        {
+                            case NF_LEFT:
+                                NF_DrawToSurface(font, dest, x, y, part);
+                                break;
+                            case NF_CENTER:
+                                NF_DrawCenter(font, dest, x, y, part);
+                                break;
+                            case NF_RIGHT:
+                                NF_DrawRight(font, dest, x, y, part);
+                                break;
+                        }
+                        y += NF_GetHeight(NULL);
+                        
+                        // Restore 'word'
+                        if(word != part)
+                            *(word-1) = firstOfWord;
+                        // Copy new word down to the start
+                        word[j] = '\0';
+                        strcpy(part, word);
+                        part[j] = ' ';
+                        word = &part[j+1];
+                        
+                        j = 0;
+                    }
+                    else
+                    {
+                        word[j] = ' ';
+                        // Not too long, so restart 'word' here and keep going.
+                        word = &word[j+1];
+                        j = 0;
+                    }
+                    
+                    if(*w == '\0')
+                        break;
+                }
+                else
+                {
+                    word[j] = *w;
+                    j++;
+                }
+            }
+            
+            word[j-1] = '\0';
+            switch(align)
+            {
+                case NF_LEFT:
+                    NF_DrawToSurface(font, dest, x, y, part);
+                    break;
+                case NF_CENTER:
+                    NF_DrawCenter(font, dest, x, y, part);
+                    break;
+                case NF_RIGHT:
+                    NF_DrawRight(font, dest, x, y, part);
+                    break;
+            }
+            y += NF_GetHeight(NULL);
+            
+            i = 0;
+            
+            if(*l == '\0')
+                break;
+        }
+        else
+        {
+            line[i] = *l;
+            i++;
+        }
+    }
+    
+    SDL_SetClipRect(dest, &oldclip);
+    
+    return box;
+}
+
+
+
+
+
+
 
 int NF_GetHeight(const char* formatted_text, ...)
 {
@@ -655,22 +1196,18 @@ int NF_GetWidth(const char* formatted_text, ...)
     return bigWidth;
 }
 
-Uint8 NF_SetFont(SDL_Surface* FontSurface, Uint8 CleanUp)
+Uint8 NF_Load(SDL_Surface* FontSurface)
 {
     if(NFont_current == NULL || NFont_current->font == NULL)
         return 0;
     NFont* font = NFont_current->font;
-    if(font->cleanUp)
-        SDL_FreeSurface(font->src);
+    SDL_FreeSurface(font->src);
     font->src = FontSurface;
     if (font->src == NULL)
     {
         printf("\n ERROR: NFont given a NULL surface\n");
-        font->cleanUp = 0;
         return 0;
     }
-
-    font->cleanUp = CleanUp;
 
     int x = 1, i = 0;
     
@@ -925,13 +1462,12 @@ int NF_GetDescent(const char* formatted_text, ...)
 
 
 
-void NF_DrawToSurfacePos(int x, int y, NFontAnim_Fn posFn)
+static SDL_Rect NF_DrawToSurfacePos(NFont* font, SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, NF_AlignEnum align)
 {
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return;
-    NFont* font = NFont_current->font;
+    if(font == NULL)
+        return makeRect(x,y,0,0);
         
-    font->data.dest = font->dest;
+    font->data.dest = dest;
     font->data.src = font->src;
     font->data.text = font->buffer;  // Buffer for efficient drawing
     font->data.height = font->height;
@@ -946,6 +1482,8 @@ void NF_DrawToSurfacePos(int x, int y, NFontAnim_Fn posFn)
     font->data.lineNum = 1;
     font->data.startX = x;  // used as reset value for line feed
     font->data.startY = y;
+    font->data.align = align;
+    font->data.dirtyRect = makeRect(x,y,0,0);
     
     int preFnX = x;
     int preFnY = y;
@@ -954,8 +1492,8 @@ void NF_DrawToSurfacePos(int x, int y, NFontAnim_Fn posFn)
     unsigned char num;
     SDL_Rect srcRect, dstRect, copyS, copyD;
     
-    if(c == NULL || font->src == NULL || font->dest == NULL)
-        return;
+    if(c == NULL || font->src == NULL || dest == NULL)
+        return makeRect(x,y,0,0);
     
     srcRect.y = font->baseline - font->ascent;
     srcRect.h = dstRect.h = font->height;
@@ -1001,14 +1539,18 @@ void NF_DrawToSurfacePos(int x, int y, NFontAnim_Fn posFn)
         preFnY = y;
 
         // Use function pointer to get final x, y values
-        posFn(&x, &y, &(font->data));
+        posFn(&x, &y, params, &(font->data));
         
         dstRect.x = x;
         dstRect.y = y;
         
         copyS = srcRect;
         copyD = dstRect;
-        SDL_BlitSurface(font->src, &srcRect, font->dest, &dstRect);
+        SDL_BlitSurface(font->src, &srcRect, dest, &dstRect);
+        if(font->data.dirtyRect.w == 0 || font->data.dirtyRect.h == 0)
+            font->data.dirtyRect = dstRect;
+        else
+            font->data.dirtyRect = rectUnion(&font->data.dirtyRect, &dstRect);
         srcRect = copyS;
         dstRect = copyD;
         
@@ -1018,9 +1560,10 @@ void NF_DrawToSurfacePos(int x, int y, NFontAnim_Fn posFn)
         x += dstRect.w + font->letterSpacing;
     }
     
+    return font->data.dirtyRect;
 }
 
-void NF_DrawPos(int x, int y, NFontAnim_Fn posFn, const char* text, ...)
+void NF_DrawPos(SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, const char* text, ...)
 {
     if(NFont_current == NULL || NFont_current->font == NULL)
         return;
@@ -1030,23 +1573,10 @@ void NF_DrawPos(int x, int y, NFontAnim_Fn posFn, const char* text, ...)
     va_end(lst);
 
     NFont_current->font->data.userVar = NULL;
-    NF_DrawToSurfacePos(x, y, posFn);
+    NF_DrawToSurfacePos(NFont_current->font, dest, x, y, params, posFn, NF_LEFT);
 }
 
-void NF_DrawPosX(int x, int y, NFontAnim_Fn posFn, void* userVar, const char* text, ...)
-{
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return;
-    va_list lst;
-    va_start(lst, text);
-    vsprintf(NFont_current->font->buffer, text, lst);
-    va_end(lst);
-
-    NFont_current->font->data.userVar = userVar;
-    NF_DrawToSurfacePos(x, y, posFn);
-}
-
-void NF_DrawAll(int x, int y, NFontAnim_Fn allFn, const char* text, ...)
+void NF_DrawPosAlign(SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, NF_AlignEnum align, const char* text, ...)
 {
     if(NFont_current == NULL || NFont_current->font == NULL)
         return;
@@ -1056,21 +1586,93 @@ void NF_DrawAll(int x, int y, NFontAnim_Fn allFn, const char* text, ...)
     va_end(lst);
 
     NFont_current->font->data.userVar = NULL;
-    allFn(&x, &y, &(NFont_current->font->data));
+    NF_DrawToSurfacePos(NFont_current->font, dest, x, y, params, posFn, align);
 }
 
-void NF_DrawAllX(int x, int y, NFontAnim_Fn allFn, void* userVar, const char* text, ...)
+
+
+
+
+
+void NF_bounce(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data)
 {
-    if(NFont_current == NULL || NFont_current->font == NULL)
-        return;
-    va_list lst;
-    va_start(lst, text);
-    vsprintf(NFont_current->font->buffer, text, lst);
-    va_end(lst);
-
-    NFont_current->font->data.userVar = userVar;
-    allFn(&x, &y, &(NFont_current->font->data));
+    *y -= (int)(params.amplitudeX*fabs(sin(-M_PI*params.frequencyX*params.t + (*x - data->startX)/40.0)));
+    
+    if(data->align == NF_CENTER)
+    {
+        *x -= NF_GetWidth("%s", data->text)/2;
+    }
+    else if(data->align == NF_RIGHT)
+    {
+        *x -= NF_GetWidth("%s", data->text);
+    }
 }
 
+
+void NF_wave(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data)
+{
+    *y += (int)(params.amplitudeX*sin(-2*M_PI*params.frequencyX*params.t + (*x - data->startX)/40.0));
+    
+    if(data->align == NF_CENTER)
+    {
+        *x -= NF_GetWidth("%s", data->text)/2;
+    }
+    else if(data->align == NF_RIGHT)
+    {
+        *x -= NF_GetWidth("%s", data->text);
+    }
+}
+
+
+void NF_stretch(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data)
+{
+    float place = (float)(data->index) / strlen(data->text);
+    if(data->align == NF_CENTER)
+    {
+        place -= 0.5f;
+        *x -= NF_GetWidth("%s", data->text)/2;
+    }
+    else if(data->align == NF_RIGHT)
+    {
+        place -= 1.0f;
+        *x -= NF_GetWidth("%s", data->text);
+    }
+    *x += (int)(params.amplitudeX*(place)*cos(2*M_PI*params.frequencyX*params.t));
+}
+
+
+void NF_shake(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data)
+{
+    if(data->align == NF_CENTER)
+    {
+        *x -= NF_GetWidth("%s", data->text)/2;
+    }
+    else if(data->align == NF_RIGHT)
+    {
+        *x -= NF_GetWidth("%s", data->text);
+    }
+    *x += (int)(params.amplitudeX*sin(2*M_PI*params.frequencyX*params.t));
+    *y += (int)(params.amplitudeY*sin(2*M_PI*params.frequencyY*params.t));
+}
+
+void NF_circle(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data)
+{
+    // Negate auto-placement
+    *x = data->startX;
+    *y = data->startY;
+    
+    if(data->align == NF_LEFT)
+    {
+        *x += NF_GetWidth("%s", data->text)/2;
+    }
+    else if(data->align == NF_RIGHT)
+    {
+        *x -= NF_GetWidth("%s", data->text)/2;
+    }
+    
+    float place = (float)(data->index + 1) / strlen(data->text);
+    *x += (int)(params.amplitudeX*cos(place * 2*M_PI - 2*M_PI*params.frequencyX*params.t));
+    *y += (int)(params.amplitudeY*sin(place * 2*M_PI - 2*M_PI*params.frequencyY*params.t));
+}
 
 
