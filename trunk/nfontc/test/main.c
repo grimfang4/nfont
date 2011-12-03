@@ -29,17 +29,14 @@ void loop_drawSomeText(SDL_Surface* screen)
     SDL_Color green = {0,200,0,255};
     SDL_Color blue = {0,0,200,255};
     
-    NF_Push(NF_New());
-    NF_LoadTTF("../fonts/FreeSans.ttf", 20, black, NULL, TTF_STYLE_NORMAL);
-    NFont* font = NF_Pop();
+    NFont* font = NF_New();
+    NF_LoadTTF(font, "../fonts/FreeSans.ttf", 20, black, NULL, TTF_STYLE_NORMAL);
     
-    NF_Push(NF_New());
-    NF_LoadTTF("../fonts/FreeSans.ttf", 18, green, NULL, TTF_STYLE_NORMAL);
-    NFont* font2 = NF_Pop();
+    NFont* font2 = NF_New();
+    NF_LoadTTF(font2, "../fonts/FreeSans.ttf", 18, green, NULL, TTF_STYLE_NORMAL);
     
-    NF_Push(NF_New());
-    NF_LoadTTF("../fonts/FreeSans.ttf", 22, blue, NULL, TTF_STYLE_NORMAL);
-    NFont* font3 = NF_Pop();
+    NFont* font3 = NF_New();
+    NF_LoadTTF(font3, "../fonts/FreeSans.ttf", 22, blue, NULL, TTF_STYLE_NORMAL);
     
     
     SDL_Rect leftHalf = {0,0,3*screen->w/4, screen->h};
@@ -76,44 +73,35 @@ void loop_drawSomeText(SDL_Surface* screen)
 	    SDL_FillRect(screen, &leftHalf, 0xffffff);
 	    SDL_FillRect(screen, &rightHalf, 0x777777);
 	    
-	    NF_Push(font);
-	    NF_Draw(screen, rightHalf.x, 5, "draw align LEFT");
-	    NF_DrawAlign(screen, rightHalf.x, 25, NF_CENTER, "draw align CENTER");
-	    NF_DrawAlign(screen, rightHalf.x, 45, NF_RIGHT, "draw align RIGHT");
-	    NF_Pop();
+	    NF_Draw(font, screen, rightHalf.x, 5, "draw align LEFT");
+	    NF_DrawAlign(font, screen, rightHalf.x, 25, NF_CENTER, "draw align CENTER");
+	    NF_DrawAlign(font, screen, rightHalf.x, 45, NF_RIGHT, "draw align RIGHT");
 	    
 	    float time = SDL_GetTicks()/1000.0f;
 	    
 	    NFontAnim_Params params = NF_AnimParams(time, 20, 1, 20, 1);
 	    
-	    NF_Push(font);
-	    NF_DrawPosAlign(screen, rightHalf.x, 90, params, &NF_bounce, NF_RIGHT, "bounce align RIGHT");
-	    NF_DrawPosAlign(screen, rightHalf.x, 180, params, &NF_wave, NF_RIGHT, "wave align RIGHT");
-	    NF_DrawPosAlign(screen, rightHalf.x, 270, params, &NF_stretch, NF_RIGHT, "stretch align RIGHT");
-        NF_DrawPosAlign(screen, rightHalf.x, 380, NF_AnimParams(time, 60, 0.2, 60, 0.1), &NF_circle, NF_RIGHT, "circle align RIGHT");
-        NF_DrawPosAlign(screen, rightHalf.x, 490, NF_AnimParams(time, 5, 9, 5, 7), &NF_shake, NF_RIGHT, "shake align RIGHT");
-        NF_Pop();
+	    NF_DrawPosAlign(font, screen, rightHalf.x, 90, params, &NF_bounce, NF_RIGHT, "bounce align RIGHT");
+	    NF_DrawPosAlign(font, screen, rightHalf.x, 180, params, &NF_wave, NF_RIGHT, "wave align RIGHT");
+	    NF_DrawPosAlign(font, screen, rightHalf.x, 270, params, &NF_stretch, NF_RIGHT, "stretch align RIGHT");
+        NF_DrawPosAlign(font, screen, rightHalf.x, 380, NF_AnimParams(time, 60, 0.2, 60, 0.1), &NF_circle, NF_RIGHT, "circle align RIGHT");
+        NF_DrawPosAlign(font, screen, rightHalf.x, 490, NF_AnimParams(time, 5, 9, 5, 7), &NF_shake, NF_RIGHT, "shake align RIGHT");
 	    
-	    NF_Push(font2);
-	    NF_DrawPos(screen, rightHalf.x, 150, params, &NF_bounce, "bounce align LEFT");
-	    NF_DrawPosAlign(screen, rightHalf.x, 210, params, &NF_wave, NF_CENTER, "wave align CENTER");
-	    NF_DrawPosAlign(screen, rightHalf.x, 300, params, &NF_stretch, NF_CENTER, "stretch align CENTER");
-        NF_DrawPosAlign(screen, rightHalf.x, 410, NF_AnimParams(time, 60, 0.2, 60, 0.1), &NF_circle, NF_CENTER, "circle align CENTER");
-        NF_DrawPosAlign(screen, rightHalf.x, 520, NF_AnimParams(time, 5, 9, 5, 7), &NF_shake, NF_CENTER, "shake align CENTER");
-        NF_Pop();
+	    NF_DrawPos(font2, screen, rightHalf.x, 150, params, &NF_bounce, "bounce align LEFT");
+	    NF_DrawPosAlign(font2, screen, rightHalf.x, 210, params, &NF_wave, NF_CENTER, "wave align CENTER");
+	    NF_DrawPosAlign(font2, screen, rightHalf.x, 300, params, &NF_stretch, NF_CENTER, "stretch align CENTER");
+        NF_DrawPosAlign(font2, screen, rightHalf.x, 410, NF_AnimParams(time, 60, 0.2, 60, 0.1), &NF_circle, NF_CENTER, "circle align CENTER");
+        NF_DrawPosAlign(font2, screen, rightHalf.x, 520, NF_AnimParams(time, 5, 9, 5, 7), &NF_shake, NF_CENTER, "shake align CENTER");
         
-        NF_Push(font3);
-	    NF_DrawPosAlign(screen, rightHalf.x, 120, params, &NF_bounce, NF_CENTER, "bounce align CENTER");
-	    NF_DrawPos(screen, rightHalf.x, 240, params, &NF_wave, "wave align LEFT");
-	    NF_DrawPos(screen, rightHalf.x, 330, params, &NF_stretch, "stretch align LEFT");
-        NF_DrawPos(screen, rightHalf.x, 440, NF_AnimParams(time, 60, 0.2, 60, 0.1), &NF_circle, "circle align LEFT");
-        NF_DrawPos(screen, rightHalf.x, 550, NF_AnimParams(time, 5, 9, 5, 7), &NF_shake, "shake align LEFT");
-        NF_Pop();
+	    NF_DrawPosAlign(font3, screen, rightHalf.x, 120, params, &NF_bounce, NF_CENTER, "bounce align CENTER");
+	    NF_DrawPos(font3, screen, rightHalf.x, 240, params, &NF_wave, "wave align LEFT");
+	    NF_DrawPos(font3, screen, rightHalf.x, 330, params, &NF_stretch, "stretch align LEFT");
+        NF_DrawPos(font3, screen, rightHalf.x, 440, NF_AnimParams(time, 60, 0.2, 60, 0.1), &NF_circle, "circle align LEFT");
+        NF_DrawPos(font3, screen, rightHalf.x, 550, NF_AnimParams(time, 5, 9, 5, 7), &NF_shake, "shake align LEFT");
         
-        NF_Push(font);
-        NF_DrawColumn(screen, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
-        NF_DrawColumnAlign(screen, 100, 250, 200, NF_CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
-        NF_DrawColumnAlign(screen, 200, 450, 200, NF_RIGHT, "column align RIGHT\n\nColumn text wraps at the width of the column and has no maximum height.");
+        NF_DrawColumn(font, screen, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
+        NF_DrawColumnAlign(font, screen, 100, 250, 200, NF_CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
+        NF_DrawColumnAlign(font, screen, 200, 450, 200, NF_RIGHT, "column align RIGHT\n\nColumn text wraps at the width of the column and has no maximum height.");
 	    
 	    drawRect(screen, box1, 0x000000);
 	    drawRect(screen, box2, 0x000000);
@@ -121,23 +109,26 @@ void loop_drawSomeText(SDL_Surface* screen)
 	    
 	    SDL_SetClipRect(screen, &box1);
 	    SDL_Rect box1a = {box1.x, box1.y - scroll, box1.w, box1.h + scroll};
-        NF_DrawBox(screen, box1a, "box align LEFT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        NF_DrawBox(font, screen, box1a, "box align LEFT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    SDL_SetClipRect(screen, &box2);
 	    SDL_Rect box2a = {box2.x, box2.y - scroll, box2.w, box2.h + scroll};
-        NF_DrawBoxAlign(screen, box2a, NF_CENTER, "box align CENTER\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        NF_DrawBoxAlign(font, screen, box2a, NF_CENTER, "box align CENTER\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    SDL_SetClipRect(screen, &box3);
 	    SDL_Rect box3a = {box3.x, box3.y - scroll, box3.w, box3.h + scroll};
-        NF_DrawBoxAlign(screen, box3a, NF_RIGHT, "box align RIGHT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        NF_DrawBoxAlign(font, screen, box3a, NF_RIGHT, "box align RIGHT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
         SDL_SetClipRect(screen, NULL);
-        NF_Pop();
 	    
 	    SDL_Flip(screen);
 	    
 	    SDL_Delay(1);
 	}
+	
+	NF_Free(font);
+	NF_Free(font2);
+	NF_Free(font3);
 	
 }
 
