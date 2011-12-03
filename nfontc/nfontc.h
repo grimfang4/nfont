@@ -1,6 +1,6 @@
 /*
 NFontC v3.0.0: A bitmap font struct for SDL
-by Jonathan Dearborn 11-28-11
+by Jonathan Dearborn 12-03-11
 
 Requires:
     SDL ("SDL.h") [www.libsdl.org]
@@ -97,13 +97,14 @@ typedef struct NFontAnim_Params
     float frequencyY;
 } NFontAnim_Params;
 
+
+
 struct NFont
 {
-    SDL_Surface* src;  // bitmap source of characters
-
+    // The following can be modified directly
+    
     Uint16 height;
 
-    Uint16 maxWidth;
     Uint16 baseline;
     int ascent;
     int descent;
@@ -111,16 +112,25 @@ struct NFont
     int lineSpacing;
     int letterSpacing;
 
+    struct NFontAnim_Data data;  // Data is wrapped in a struct so it can all be passed to 
+                          // the function pointers
+    
+    
+    // Don't mess with the following directly.  Use the NF_* functions.
+    
+    SDL_Surface* src;  // bitmap source of characters
+    
+    Uint16 maxWidth;
     int charPos[256];
     Uint16 charWidth[256];
     int maxPos;
 
     char* buffer;  // Buffer for efficient drawing
 
-    struct NFontAnim_Data data;  // Data is wrapped in a struct so it can all be passed to 
-                          // the function pointers
-
 };
+
+
+
 
 
 // Function pointer
@@ -130,59 +140,43 @@ typedef void (*NFontAnim_Fn)(int*, int*, NFontAnim_Params, NFontAnim_Data*);
 extern "C" {
 #endif
 
-void NF_Init(NFont* font);
+// Loading
 NFont* NF_New();
 void NF_Free(NFont* font);
-void NF_Push(NFont* font);
-NFont* NF_Pop();
-
-void NF_SetSpacing(int LetterSpacing);
-int NF_GetSpacing();
-void NF_SetLineSpacing(int LineSpacing);
-int NF_GetLineSpacing();
-int NF_GetBaseline();
-int NF_GetMaxWidth();
-void NF_SetBuffer(unsigned int size);
-void NF_SetCleanUp(Uint8 enable);
-Uint8 NF_Load(SDL_Surface* FontSurface);
-
-SDL_Surface* NF_NewColorSurface(Uint32 top, Uint32 bottom, int heightAdjust);
+Uint8 NF_Load(NFont* font, SDL_Surface* FontSurface);
+void NF_SetBuffer(NFont* font, unsigned int size);
+SDL_Surface* NF_VerticalGradient(SDL_Surface* targetSurface, Uint32 top, Uint32 bottom, int heightAdjust);
 
 #ifndef NFONT_NO_TTF
-
-void NF_LoadTTF(const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color* bg, int style);
-void NF_LoadTTF_Font(TTF_Font* ttf, SDL_Color fg, SDL_Color* bg);
-
+void NF_LoadTTF(NFont* font, const char* filename_ttf, Uint32 pointSize, SDL_Color fg, SDL_Color* bg, int style);
+void NF_LoadTTF_Font(NFont* font, TTF_Font* ttf, SDL_Color fg, SDL_Color* bg);
 #endif
 
-SDL_Rect NF_Draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...);
-SDL_Rect NF_DrawAlign(SDL_Surface* dest, int x, int y, NF_AlignEnum align, const char* formatted_text, ...);
-SDL_Rect NF_DrawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...);
-SDL_Rect NF_DrawColumnAlign(SDL_Surface* dest, int x, int y, Uint16 width, NF_AlignEnum align, const char* formatted_text, ...);
-SDL_Rect NF_DrawBox(SDL_Surface* dest, SDL_Rect box, const char* formatted_text, ...);
-SDL_Rect NF_DrawBoxAlign(SDL_Surface* dest, SDL_Rect box, NF_AlignEnum align, const char* formatted_text, ...);
+// Drawing
+SDL_Rect NF_Draw(NFont* font, SDL_Surface* dest, int x, int y, const char* formatted_text, ...);
+SDL_Rect NF_DrawAlign(NFont* font, SDL_Surface* dest, int x, int y, NF_AlignEnum align, const char* formatted_text, ...);
+SDL_Rect NF_DrawColumn(NFont* font, SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...);
+SDL_Rect NF_DrawColumnAlign(NFont* font, SDL_Surface* dest, int x, int y, Uint16 width, NF_AlignEnum align, const char* formatted_text, ...);
+SDL_Rect NF_DrawBox(NFont* font, SDL_Surface* dest, SDL_Rect box, const char* formatted_text, ...);
+SDL_Rect NF_DrawBoxAlign(NFont* font, SDL_Surface* dest, SDL_Rect box, NF_AlignEnum align, const char* formatted_text, ...);
 
 
-int NF_GetHeight(const char* formatted_text, ...);
-int NF_GetWidth(const char* formatted_text, ...);
+// Metrics
+int NF_GetHeight(NFont* font, const char* formatted_text, ...);
+int NF_GetWidth(NFont* font, const char* formatted_text, ...);
+
+int NF_SetBaseline(NFont* font);
+int NF_GetAscentChar(NFont* font, const char character);
+int NF_GetAscent(NFont* font, const char* formatted_text, ...);
+int NF_GetDescentChar(NFont* font, const char character);
+int NF_GetDescent(NFont* font, const char* formatted_text, ...);
 
 
-int NF_SetBaseline(int Baseline);
-int NF_GetAscentChar(const char character);
-int NF_GetAscent(const char* formatted_text, ...);
-int NF_GetDescentChar(const char character);
-int NF_GetDescent(const char* formatted_text, ...);
-
-
-
-
-
-
+// Animation
 NFontAnim_Params NF_AnimParams(float t, float amplitudeX, float frequencyX, float amplitudeY, float frequencyY);
 
-void NF_DrawPos(SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, const char* text, ...);
-void NF_DrawPosAlign(SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, NF_AlignEnum align, const char* text, ...);
-
+void NF_DrawPos(NFont* font, SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, const char* text, ...);
+void NF_DrawPosAlign(NFont* font, SDL_Surface* dest, int x, int y, NFontAnim_Params params, NFontAnim_Fn posFn, NF_AlignEnum align, const char* text, ...);
 
 // Built-in animations
 void NF_bounce(int* x, int* y, NFontAnim_Params params, NFontAnim_Data* data);
