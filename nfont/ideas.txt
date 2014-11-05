@@ -1,13 +1,4 @@
 
 
 Load other bitmap font layouts?
-Remove "extended ASCII".
-Add real UTF-8.  Maybe not simple with a bitmap storage...  Needs to know which glyphs to create from ttf.  Needs to know how to load glyphs from bitmap (i.e. glyph string "ABC...").
-
-
-
-
-
-
-
 

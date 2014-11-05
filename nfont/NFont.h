@@ -1,17 +1,17 @@
 /*
-NFont v3.0.0: A bitmap font class for SDL
-by Jonathan Dearborn 11-28-11
-(class originally adapted from Florian Hufsky)
+NFont v4.0.0: A font class for SDL
+by Jonathan Dearborn
+Dedicated to the memory of Florian Hufsky
 
 Requires:
     SDL ("SDL.h") [www.libsdl.org]
+    SDL_gpu ("SDL_gpu.h") [code.google.com/p/sdl-gpu]
     SDL_ttf ("SDL_ttf.h") [www.libsdl.org]
 
 Notes:
-    NFont is a bitmap font class with text-block alignment, full
-    support for the newline character ('\n'), and position animation.  
-    It accepts SDL_Surfaces so that any image format you can load 
-    can be used as an NFont.
+    NFont is a font class with text-block alignment, full
+    support for the newline character ('\n'), position animation,
+    and UTF-8 support.
     
     NFont natively loads SFont bitmaps and TrueType fonts with SDL_ttf.  The 
     standard bitmaps have the following characters (ASCII 33-126) separated by 
@@ -29,7 +29,7 @@ License:
     whenever these files or parts of them are distributed in uncompiled form.
     
     The long:
-Copyright (c) 2011 Jonathan Dearborn
+Copyright (c) 2014 Jonathan Dearborn
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -54,12 +54,22 @@ THE SOFTWARE.
 #define _NFONT_H__
 
 #include "SDL.h"
+#include "SDL_gpu.h"
 #include "stdarg.h"
+#include <map>
+#include <vector>
 
 #ifndef NFONT_NO_TTF
     #include "SDL_ttf.h"
 #endif
 
+// Let's pretend this exists...
+#define TTF_STYLE_OUTLINE	16
+
+
+#ifdef NFONT_USE_SDL_HELPERS
+    #include "SDL_Helpers.h"
+#endif
 
 class NFont
 {
@@ -74,39 +84,133 @@ class NFont
         Color();
         Color(Uint8 r, Uint8 g, Uint8 b);
         Color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        Color(const SDL_Color& color);
         
         Color& rgb(Uint8 R, Uint8 G, Uint8 B);
         Color& rgba(Uint8 R, Uint8 G, Uint8 B, Uint8 A);
+        Color& color(const SDL_Color& color);
         
-        SDL_Color toSDL_Color() const;
+        SDL_Color to_SDL_Color() const;
     };
+    
+#ifndef NFONT_USE_SDL_HELPERS
+    class Rectf
+    {
+        public:
+        float x, y;
+        float w, h;
+        
+        Rectf();
+        Rectf(float x, float y);
+        Rectf(float x, float y, float w, float h);
+        Rectf(const SDL_Rect& rect);
+        Rectf(const GPU_Rect& rect);
+        
+        SDL_Rect to_SDL_Rect() const;
+        GPU_Rect to_GPU_Rect() const;
+    };
+#endif
 
     
     enum AlignEnum {LEFT, CENTER, RIGHT};
     
+    class Scale
+    {
+        public:
+        
+        float x;
+        float y;
+        
+        enum ScaleTypeEnum {NEAREST};
+        ScaleTypeEnum type;
+        
+        Scale()
+            : x(1.0f), y(1.0f), type(NEAREST)
+        {}
+        Scale(float xy)
+            : x(xy), y(xy), type(NEAREST)
+        {}
+        Scale(float xy, ScaleTypeEnum type)
+            : x(xy), y(xy), type(type)
+        {}
+        Scale(float x, float y)
+            : x(x), y(y), type(NEAREST)
+        {}
+        Scale(float x, float y, ScaleTypeEnum type)
+            : x(x), y(y), type(type)
+        {}
+    };
+    
+    class Effect
+    {
+        public:
+        Scale scale;
+        AlignEnum alignment;
+        
+        Effect()
+            : alignment(LEFT)
+        {}
+        Effect(const Scale& scale)
+            : scale(scale), alignment(LEFT)
+        {}
+        Effect(AlignEnum alignment)
+            : alignment(alignment)
+        {}
+        Effect(AlignEnum alignment, const Scale& scale)
+            : scale(scale), alignment(alignment)
+        {}
+    };
+    
+    class GlyphData
+    {
+    public:
+        SDL_Rect rect;
+        int cacheIndex;
+        
+        GlyphData()
+            : cacheIndex(0)
+        {
+            rect.x = 0;
+            rect.y = 0;
+            rect.w = 0;
+            rect.h = 0;
+        }
+        GlyphData(int cacheIndex, Sint16 x, Sint16 y, Uint16 w, Uint16 h)
+            : cacheIndex(cacheIndex)
+        {
+            rect.x = x;
+            rect.y = y;
+            rect.w = w;
+            rect.h = h;
+        }
+        GlyphData(int cacheIndex, const SDL_Rect& rect)
+            : rect(rect), cacheIndex(cacheIndex)
+        {}
+    };
+    
     struct AnimData
     {
-        const NFont* font;
+        NFont* font;
         
-        SDL_Surface* dest;
-        SDL_Surface* src;
+        GPU_Target* dest;
+        GPU_Image* src;
         char* text;  // Buffer for efficient drawing
         const int* charPos;
         const Uint16* charWidth;
-        int maxX;
+        float maxX;
         
         int index;
         int letterNum;
         int wordNum;
         int lineNum;
-        int startX;
-        int startY;
+        float startX;
+        float startY;
         
         NFont::AlignEnum align;
         
         void* userVar;
         
-        SDL_Rect dirtyRect;
+        GPU_Rect dirtyRect;
     };
     
     class AnimParams
@@ -134,7 +238,7 @@ class NFont
     };
     
     // Function pointer
-    typedef void (*AnimFn)(int&, int&, const AnimParams&, AnimData&);
+    typedef void (*AnimFn)(float&, float&, const AnimParams&, AnimData&);
     
     
     
@@ -168,33 +272,40 @@ class NFont
         bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
         bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style = TTF_STYLE_NORMAL);
     #endif
+    
+    void free();
 
     // Drawing
-    SDL_Rect draw(SDL_Surface* dest, int x, int y, const char* formatted_text, ...) const;
-    SDL_Rect draw(SDL_Surface* dest, int x, int y, AlignEnum align, const char* formatted_text, ...) const;
-    SDL_Rect draw(SDL_Surface* dest, int x, int y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...) const;
-    SDL_Rect draw(SDL_Surface* dest, int x, int y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...) const;
+    GPU_Rect draw(GPU_Target* dest, float x, float y, const char* formatted_text, ...);
+    GPU_Rect draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
+    GPU_Rect draw(GPU_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...);
+    GPU_Rect draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...);
+    GPU_Rect draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...);
+    GPU_Rect draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...);
     
-    SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, const char* formatted_text, ...) const;
-    SDL_Rect drawBox(SDL_Surface* dest, const SDL_Rect& box, AlignEnum align, const char* formatted_text, ...) const;
-    SDL_Rect drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, const char* formatted_text, ...) const;
-    SDL_Rect drawColumn(SDL_Surface* dest, int x, int y, Uint16 width, AlignEnum align, const char* formatted_text, ...) const;
+    GPU_Rect drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...);
+    GPU_Rect drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    GPU_Rect drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
+    GPU_Rect drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
     
     // Getters
+    GPU_Image* getImage() const;
     SDL_Surface* getSurface() const;
     Uint16 getHeight() const;
     Uint16 getHeight(const char* formatted_text, ...) const;
-    Uint16 getWidth(const char* formatted_text, ...) const;
-    Uint16 getColumnHeight(Uint16 width, const char* formatted_text, ...) const;
+    Uint16 getWidth(const char* formatted_text, ...);
+    Uint16 getColumnPosWidth(Uint16 width, Uint16 pos, const char* formatted_text, ...);
+    Uint16 getColumnPosHeight(Uint16 width, Uint16 pos, const char* formatted_text, ...);
+    Uint16 getColumnHeight(Uint16 width, const char* formatted_text, ...);
     int getSpacing() const;
     int getLineSpacing() const;
     Uint16 getBaseline() const;
     int getAscent() const;
-    int getAscent(const char character) const;
-    int getAscent(const char* formatted_text, ...) const;
+    int getAscent(const char character);
+    int getAscent(const char* formatted_text, ...);
     int getDescent() const;
-    int getDescent(const char character) const;
-    int getDescent(const char* formatted_text, ...) const;
+    int getDescent(const char character);
+    int getDescent(const char* formatted_text, ...);
     Uint16 getMaxWidth() const;
     
     // Setters
@@ -202,12 +313,16 @@ class NFont
     void setLineSpacing(int LineSpacing);
     void setBaseline();
     void setBaseline(Uint16 Baseline);
-    
+    void enableTTFOwnership();
     
   private:
     
-    SDL_Surface* src;  // bitmap source of characters
-
+    TTF_Font* ttf_source;  // TTF_Font source of characters
+    bool owns_ttf_source;  // Can we delete the TTF_Font ourselves?
+    SDL_Color ttf_source_color;
+    SDL_Surface* srcSurface;  // bitmap source of characters
+    GPU_Image* src;  // bitmap source of characters
+    
     Uint16 height;
 
     Uint16 maxWidth;
@@ -217,35 +332,44 @@ class NFont
 
     int lineSpacing;
     int letterSpacing;
-
-    int charPos[256];
-    Uint16 charWidth[256];
-    int maxPos;
+    
+    // Uses 32-bit (4-byte) Unicode codepoints to refer to each glyph
+    // Codepoints are little endian (reversed from UTF-8) so that something like 0x00000005 is ASCII 5 and the map can be indexed by ASCII values
+    // Glyph needs to store it's blitting rect
+    std::map<Uint32, GlyphData> glyphs;
+    SDL_Rect lastGlyph;  // Texture packing cursor
+    std::vector<GPU_Image*> glyphCache;  // TODO: Use this to store the glyphs (instead of 'src').  The issue is getting SDL_Surface glyphs blitted here.
+    
+    //int maxPos;
+    bool addGlyph(Uint32 codepoint, Uint16 width, Uint16 maxWidth, Uint16 maxHeight);
+    bool getGlyphData(GlyphData* result, Uint32 codepoint);
     
     void init();  // Common constructor
 
-    SDL_Rect drawAnimated(SDL_Surface* dest, int x, int y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align) const;
+    GPU_Rect drawAnimated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align);
     
     // Static variables
     static char* buffer;  // Shared buffer for efficient drawing
     static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
                                  // the function pointers for animation
     
-    SDL_Rect drawLeft(SDL_Surface* dest, int x, int y, const char* text) const;
-    SDL_Rect drawCenter(SDL_Surface* dest, int x, int y, const char* text) const;
-    SDL_Rect drawRight(SDL_Surface* dest, int x, int y, const char* text) const;
+    GPU_Rect drawLeft(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    GPU_Rect drawLeft(GPU_Target* dest, float x, float y, const char* text);
+    GPU_Rect drawCenter(GPU_Target* dest, float x, float y, const char* text);
+    GPU_Rect drawCenter(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    GPU_Rect drawRight(GPU_Target* dest, float x, float y, const char* text);
+    GPU_Rect drawRight(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
     
-    void optimizeForVideoSurface();
 };
 
 
 namespace NFontAnim
 {
-    void bounce(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void wave(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void stretch(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void shake(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void circle(int& x, int& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void bounce(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void wave(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void stretch(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void shake(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
+    void circle(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
 }
 
 
