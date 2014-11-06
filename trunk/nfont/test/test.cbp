@@ -55,16 +55,21 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add directory="../../../externals/SDL2/include/SDL2" />
+					<Add directory="../../../externals/SDL_ttf/include" />
+					<Add directory="../../../externals/SDL_gpu/include" />
 				</Compiler>
 				<Linker>
 					<Add option="-mwindows" />
 					<Add library="mingw32" />
-					<Add library="SDLmain" />
-					<Add library="SDL" />
-					<Add library="sprig" />
-					<Add library="SDL_image" />
-					<Add library="SDL_ttf" />
-					<Add library="SDL_mixer" />
+					<Add library="SDL2main" />
+					<Add library="SDL2_gpu" />
+					<Add library="SDL2" />
+					<Add library="SDL2_ttf" />
+					<Add library="OpenGL32" />
+					<Add directory="../../../externals/SDL2/lib_windows" />
+					<Add directory="../../../externals/SDL_ttf/lib_windows" />
+					<Add directory="../../../externals/SDL_gpu/lib_windows" />
 				</Linker>
 			</Target>
 			<Target title="Win Release">
