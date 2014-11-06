@@ -1020,7 +1020,7 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
 }
 
 // Drawing
-GPU_Rect NFont::drawLeft(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
+GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
 {
     const char* c = text;
     Rectf srcRect, dstRect, copyS, copyD;
@@ -1085,12 +1085,12 @@ GPU_Rect NFont::drawLeft(GPU_Target* dest, float x, float y, const Scale& scale,
     return data.dirtyRect;
 }
 
-GPU_Rect NFont::drawLeft(GPU_Target* dest, float x, float y, const char* text)
+GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const char* text)
 {
-    return drawLeft(dest, x, y, Scale(1.0f), text);
+    return render_left(dest, x, y, Scale(1.0f), text);
 }
 
-GPU_Rect NFont::drawAnimated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align)
+GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align)
 {
     const char* c = buffer;
     Scale scale;
@@ -1204,7 +1204,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const char* formatted_t
     va_end(lst);
 
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
-    return drawLeft(dest, x, y, buffer);
+    return render_left(dest, x, y, buffer);
 }
 
 /*static int getIndexPastWidth(const char* text, int width, const int* charWidth)
@@ -1289,7 +1289,7 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, const char* formatte
             {
                 if(getWidth((line + *f).c_str()) > box.w)
                 {
-                    drawLeft(dest, box.x, y, line.c_str());
+                    render_left(dest, box.x, y, line.c_str());
                     y += getHeight();
                     line = *f + " ";
                 }
@@ -1300,7 +1300,7 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, const char* formatte
             }
         }
 
-        drawLeft(dest, box.x, y, line.c_str());
+        render_left(dest, box.x, y, line.c_str());
         y += getHeight();
     }
     if(useClip)
@@ -1352,13 +1352,13 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, con
                     switch(align)
                     {
                         case LEFT:
-                            drawLeft(dest, box.x, y, line.c_str());
+                            render_left(dest, box.x, y, line.c_str());
                             break;
                         case CENTER:
-                            drawCenter(dest, box.x + box.w/2, y, line.c_str());
+                            render_center(dest, box.x + box.w/2, y, line.c_str());
                             break;
                         case RIGHT:
-                            drawRight(dest, box.x + box.w, y, line.c_str());
+                            render_right(dest, box.x + box.w, y, line.c_str());
                             break;
                     }
                     y += getHeight();
@@ -1374,13 +1374,13 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, con
         switch(align)
         {
             case LEFT:
-                drawLeft(dest, box.x, y, line.c_str());
+                render_left(dest, box.x, y, line.c_str());
                 break;
             case CENTER:
-                drawCenter(dest, box.x + box.w/2, y, line.c_str());
+                render_center(dest, box.x + box.w/2, y, line.c_str());
                 break;
             case RIGHT:
-                drawRight(dest, box.x + box.w, y, line.c_str());
+                render_right(dest, box.x + box.w, y, line.c_str());
                 break;
         }
         y += getHeight();
@@ -1426,7 +1426,7 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, con
             {
                 if(getWidth((line + *f).c_str()) > width)
                 {
-                    drawLeft(dest, x, y, line.c_str());
+                    render_left(dest, x, y, line.c_str());
                     y += getHeight();
                     line = *f + " ";
                 }
@@ -1437,7 +1437,7 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, con
             }
         }
 
-        drawLeft(dest, x, y, line.c_str());
+        render_left(dest, x, y, line.c_str());
         y += getHeight();
     }
 
@@ -1479,13 +1479,13 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, Ali
                     switch(align)
                     {
                         case LEFT:
-                            drawLeft(dest, x, y, line.c_str());
+                            render_left(dest, x, y, line.c_str());
                             break;
                         case CENTER:
-                            drawCenter(dest, x, y, line.c_str());
+                            render_center(dest, x, y, line.c_str());
                             break;
                         case RIGHT:
-                            drawRight(dest, x, y, line.c_str());
+                            render_right(dest, x, y, line.c_str());
                             break;
                     }
                     y += getHeight();
@@ -1501,13 +1501,13 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, Ali
         switch(align)
         {
             case LEFT:
-                drawLeft(dest, x, y, line.c_str());
+                render_left(dest, x, y, line.c_str());
                 break;
             case CENTER:
-                drawCenter(dest, x, y, line.c_str());
+                render_center(dest, x, y, line.c_str());
                 break;
             case RIGHT:
-                drawRight(dest, x, y, line.c_str());
+                render_right(dest, x, y, line.c_str());
                 break;
         }
         y += getHeight();
@@ -1516,7 +1516,7 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, Ali
     return GPU_MakeRect(x, y0, width, y-y0);
 }
 
-GPU_Rect NFont::drawCenter(GPU_Target* dest, float x, float y, const char* text)
+GPU_Rect NFont::render_center(GPU_Target* dest, float x, float y, const char* text)
 {
     if(text == NULL)
         return GPU_MakeRect(x, y, 0, 0);
@@ -1532,7 +1532,7 @@ GPU_Rect NFont::drawCenter(GPU_Target* dest, float x, float y, const char* text)
         if(*c == '\n')
         {
             *c = '\0';
-            result = rectUnion(drawLeft(dest, x - getWidth("%s", str)/2.0f, y, str), result);
+            result = rectUnion(render_left(dest, x - getWidth("%s", str)/2.0f, y, str), result);
             *c = '\n';
             c++;
             str = c;
@@ -1542,13 +1542,13 @@ GPU_Rect NFont::drawCenter(GPU_Target* dest, float x, float y, const char* text)
             c++;
     }
 
-    result = rectUnion(drawLeft(dest, x - getWidth("%s", str)/2.0f, y, str), result);
+    result = rectUnion(render_left(dest, x - getWidth("%s", str)/2.0f, y, str), result);
 
     delete[] del;
     return result;
 }
 
-GPU_Rect NFont::drawRight(GPU_Target* dest, float x, float y, const char* text)
+GPU_Rect NFont::render_right(GPU_Target* dest, float x, float y, const char* text)
 {
     if(text == NULL)
         return GPU_MakeRect(x, y, 0, 0);
@@ -1562,7 +1562,7 @@ GPU_Rect NFont::drawRight(GPU_Target* dest, float x, float y, const char* text)
         if(*c == '\n')
         {
             *c = '\0';
-            result = rectUnion(drawLeft(dest, x - getWidth("%s", str), y, str), result);
+            result = rectUnion(render_left(dest, x - getWidth("%s", str), y, str), result);
             *c = '\n';
             c++;
             str = c;
@@ -1572,13 +1572,13 @@ GPU_Rect NFont::drawRight(GPU_Target* dest, float x, float y, const char* text)
             c++;
     }
 
-    result = rectUnion(drawLeft(dest, x - getWidth("%s", str), y, str), result);
+    result = rectUnion(render_left(dest, x - getWidth("%s", str), y, str), result);
 
     delete[] del;
     return result;
 }
 
-GPU_Rect NFont::drawCenter(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
+GPU_Rect NFont::render_center(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
 {
     if(text == NULL)
         return GPU_MakeRect(x, y, 0, 0);
@@ -1594,7 +1594,7 @@ GPU_Rect NFont::drawCenter(GPU_Target* dest, float x, float y, const Scale& scal
         if(*c == '\n')
         {
             *c = '\0';
-            result = rectUnion(drawLeft(dest, x - scale.x*getWidth("%s", str)/2.0f, y, scale, str), result);
+            result = rectUnion(render_left(dest, x - scale.x*getWidth("%s", str)/2.0f, y, scale, str), result);
             *c = '\n';
             c++;
             str = c;
@@ -1604,13 +1604,13 @@ GPU_Rect NFont::drawCenter(GPU_Target* dest, float x, float y, const Scale& scal
             c++;
     }
 
-    result = rectUnion(drawLeft(dest, x - scale.x*getWidth("%s", str)/2.0f, y, scale, str), result);
+    result = rectUnion(render_left(dest, x - scale.x*getWidth("%s", str)/2.0f, y, scale, str), result);
 
     delete[] del;
     return result;
 }
 
-GPU_Rect NFont::drawRight(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
+GPU_Rect NFont::render_right(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
 {
     if(text == NULL)
         return GPU_MakeRect(x, y, 0, 0);
@@ -1624,7 +1624,7 @@ GPU_Rect NFont::drawRight(GPU_Target* dest, float x, float y, const Scale& scale
         if(*c == '\n')
         {
             *c = '\0';
-            result = rectUnion(drawLeft(dest, x - scale.x*getWidth("%s", str), y, scale, str), result);
+            result = rectUnion(render_left(dest, x - scale.x*getWidth("%s", str), y, scale, str), result);
             *c = '\n';
             c++;
             str = c;
@@ -1634,7 +1634,7 @@ GPU_Rect NFont::drawRight(GPU_Target* dest, float x, float y, const Scale& scale
             c++;
     }
 
-    result = rectUnion(drawLeft(dest, x - scale.x*getWidth("%s", str), y, scale, str), result);
+    result = rectUnion(render_left(dest, x - scale.x*getWidth("%s", str), y, scale, str), result);
 
     delete[] del;
     return result;
@@ -1653,7 +1653,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Scale& scale, con
     va_end(lst);
 
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
-    return drawLeft(dest, x, y, scale, buffer);
+    return render_left(dest, x, y, scale, buffer);
 }
 
 GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...)
@@ -1671,11 +1671,11 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, AlignEnum align, const 
     switch(align)
     {
         case LEFT:
-            return drawLeft(dest, x, y, buffer);
+            return render_left(dest, x, y, buffer);
         case CENTER:
-            return drawCenter(dest, x, y, buffer);
+            return render_center(dest, x, y, buffer);
         case RIGHT:
-            return drawRight(dest, x, y, buffer);
+            return render_right(dest, x, y, buffer);
     }
 
     return GPU_MakeRect(x, y, 0, 0);
@@ -1692,7 +1692,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Color& color, con
     va_end(lst);
 
     GPU_SetRGBA(src, color.r, color.g, color.b, color.a);
-    GPU_Rect result = drawLeft(dest, x, y, buffer);
+    GPU_Rect result = render_left(dest, x, y, buffer);
     GPU_SetRGBA(src, 255, 255, 255, 255);
     return result;
 }
@@ -1717,13 +1717,13 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Effect& effect, c
     switch(effect.alignment)
     {
         case LEFT:
-            result = drawLeft(dest, x, y, effect.scale, buffer);
+            result = render_left(dest, x, y, effect.scale, buffer);
             break;
         case CENTER:
-            result = drawCenter(dest, x, y, effect.scale, buffer);
+            result = render_center(dest, x, y, effect.scale, buffer);
             break;
         case RIGHT:
-            result = drawRight(dest, x, y, effect.scale, buffer);
+            result = render_right(dest, x, y, effect.scale, buffer);
             break;
         default:
             result = GPU_MakeRect(x, y, 0, 0);
@@ -1742,7 +1742,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams
     va_end(lst);
 
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
-    return drawAnimated(dest, x, y, params, posFn, NFont::LEFT);
+    return render_animated(dest, x, y, params, posFn, NFont::LEFT);
 }
 
 GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, AlignEnum align, const char* text, ...)
@@ -1753,7 +1753,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams
     va_end(lst);
 
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
-    return drawAnimated(dest, x, y, params, posFn, align);
+    return render_animated(dest, x, y, params, posFn, align);
 }
 
 

@@ -364,19 +364,19 @@ class NFont
     
     void init();  // Common constructor
 
-    GPU_Rect drawAnimated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align);
+    GPU_Rect render_animated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align);
     
     // Static variables
     static char* buffer;  // Shared buffer for efficient drawing
     static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
                                  // the function pointers for animation
     
-    GPU_Rect drawLeft(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    GPU_Rect drawLeft(GPU_Target* dest, float x, float y, const char* text);
-    GPU_Rect drawCenter(GPU_Target* dest, float x, float y, const char* text);
-    GPU_Rect drawCenter(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    GPU_Rect drawRight(GPU_Target* dest, float x, float y, const char* text);
-    GPU_Rect drawRight(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    GPU_Rect render_left(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    GPU_Rect render_left(GPU_Target* dest, float x, float y, const char* text);
+    GPU_Rect render_center(GPU_Target* dest, float x, float y, const char* text);
+    GPU_Rect render_center(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    GPU_Rect render_right(GPU_Target* dest, float x, float y, const char* text);
+    GPU_Rect render_right(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
     
 };
 
