@@ -144,20 +144,35 @@ class NFont
     class Effect
     {
         public:
-        Scale scale;
         AlignEnum alignment;
+        Scale scale;
+        Color color;
         
         Effect()
-            : alignment(LEFT)
+            : alignment(LEFT), color(255, 255, 255, 255)
         {}
+        
         Effect(const Scale& scale)
-            : scale(scale), alignment(LEFT)
+            : alignment(LEFT), scale(scale), color(255, 255, 255, 255)
         {}
         Effect(AlignEnum alignment)
-            : alignment(alignment)
+            : alignment(alignment), color(255, 255, 255, 255)
         {}
+        Effect(const Color& color)
+            : alignment(LEFT), color(color)
+        {}
+        
         Effect(AlignEnum alignment, const Scale& scale)
-            : scale(scale), alignment(alignment)
+            : alignment(alignment), scale(scale), color(255, 255, 255, 255)
+        {}
+        Effect(AlignEnum alignment, const Color& color)
+            : alignment(alignment), color(color)
+        {}
+        Effect(const Scale& scale, const Color& color)
+            : alignment(LEFT), scale(scale), color(color)
+        {}
+        Effect(AlignEnum alignment, const Scale& scale, const Color& color)
+            : alignment(alignment), scale(scale), color(color)
         {}
     };
     
@@ -279,6 +294,7 @@ class NFont
     GPU_Rect draw(GPU_Target* dest, float x, float y, const char* formatted_text, ...);
     GPU_Rect draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
     GPU_Rect draw(GPU_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...);
+    GPU_Rect draw(GPU_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...);
     GPU_Rect draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...);
     GPU_Rect draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...);
     GPU_Rect draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...);
