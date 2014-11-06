@@ -146,33 +146,34 @@ class NFont
         public:
         AlignEnum alignment;
         Scale scale;
+        bool use_color;
         Color color;
         
         Effect()
-            : alignment(LEFT), color(255, 255, 255, 255)
+            : alignment(LEFT), use_color(false), color(255, 255, 255, 255)
         {}
         
         Effect(const Scale& scale)
-            : alignment(LEFT), scale(scale), color(255, 255, 255, 255)
+            : alignment(LEFT), scale(scale), use_color(false), color(255, 255, 255, 255)
         {}
         Effect(AlignEnum alignment)
-            : alignment(alignment), color(255, 255, 255, 255)
+            : alignment(alignment), use_color(false), color(255, 255, 255, 255)
         {}
         Effect(const Color& color)
-            : alignment(LEFT), color(color)
+            : alignment(LEFT), use_color(true), color(color)
         {}
         
         Effect(AlignEnum alignment, const Scale& scale)
-            : alignment(alignment), scale(scale), color(255, 255, 255, 255)
+            : alignment(alignment), scale(scale), use_color(false), color(255, 255, 255, 255)
         {}
         Effect(AlignEnum alignment, const Color& color)
-            : alignment(alignment), color(color)
+            : alignment(alignment), use_color(true), color(color)
         {}
         Effect(const Scale& scale, const Color& color)
-            : alignment(LEFT), scale(scale), color(color)
+            : alignment(LEFT), scale(scale), use_color(true), color(color)
         {}
         Effect(AlignEnum alignment, const Scale& scale, const Color& color)
-            : alignment(alignment), scale(scale), color(color)
+            : alignment(alignment), scale(scale), use_color(true), color(color)
         {}
     };
     
@@ -269,10 +270,9 @@ class NFont
     NFont(const NFont& font);
     NFont(SDL_Surface* src);
     #ifndef NFONT_NO_TTF
-        NFont(TTF_Font* ttf, const NFont::Color& fg);  // Alpha bg
-        NFont(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg);
-        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
-        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style = TTF_STYLE_NORMAL);
+        NFont(TTF_Font* ttf);
+        NFont(TTF_Font* ttf, const NFont::Color& color);
+        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);
     #endif
 
     ~NFont();
@@ -282,10 +282,9 @@ class NFont
     // Loading
     bool load(SDL_Surface* FontSurface);
     #ifndef NFONT_NO_TTF
-        bool load(TTF_Font* ttf, const NFont::Color& fg);  // Alpha bg
-        bool load(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg);
-        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);  // Alpha bg
-        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style = TTF_STYLE_NORMAL);
+        bool load(TTF_Font* ttf);
+        bool load(TTF_Font* ttf, const NFont::Color& color);
+        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);
     #endif
     
     void free();
@@ -323,12 +322,14 @@ class NFont
     int getDescent(const char character);
     int getDescent(const char* formatted_text, ...);
     Uint16 getMaxWidth() const;
+    Color getDefaultColor() const;
     
     // Setters
     void setSpacing(int LetterSpacing);
     void setLineSpacing(int LineSpacing);
     void setBaseline();
     void setBaseline(Uint16 Baseline);
+    void setDefaultColor(const Color& color);
     void enableTTFOwnership();
     
   private:
@@ -339,6 +340,7 @@ class NFont
     SDL_Surface* srcSurface;  // bitmap source of characters
     GPU_Image* src;  // bitmap source of characters
     
+    Color default_color;
     Uint16 height;
 
     Uint16 maxWidth;

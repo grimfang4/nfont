@@ -513,28 +513,35 @@ NFont::NFont(SDL_Surface* src)
 }
 
 #ifndef NFONT_NO_TTF
-NFont::NFont(TTF_Font* ttf, const NFont::Color& fg)
+NFont::NFont(TTF_Font* ttf)
 {
     init();
-    load(ttf, fg);
+    load(ttf, default_color);
 }
-NFont::NFont(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg)
+NFont::NFont(TTF_Font* ttf, const NFont::Color& color)
 {
     init();
-    load(ttf, fg, bg);
+    load(ttf, color);
 }
 NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style)
 {
     init();
     load(filename_ttf, pointSize, fg, style);
 }
-NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style)
-{
-    init();
-    load(filename_ttf, pointSize, fg, bg, style);
-}
 
 #endif
+
+NFont::~NFont()
+{
+    free();
+}
+
+
+NFont& NFont::operator=(const NFont& font)
+{
+    load(copySurface(font.srcSurface));
+    return *this;
+}
 
 void NFont::init()
 {
@@ -543,6 +550,8 @@ void NFont::init()
     ttf_source_color = GPU_MakeColor(255, 255, 255, 255);
     src = NULL;
     srcSurface = NULL;
+    
+    default_color.rgba(0, 0, 0, 255);
 
     height = 0; // ascent+descent
 
@@ -563,18 +572,6 @@ void NFont::init()
     lastGlyph.h = 0;
     
     glyphs.clear();
-}
-
-NFont::~NFont()
-{
-    free();
-}
-
-
-NFont& NFont::operator=(const NFont& font)
-{
-    load(copySurface(font.srcSurface));
-    return *this;
 }
 
 
@@ -762,61 +759,6 @@ bool NFont::load(SDL_Surface* FontSurface)
 }
 
 #ifndef NFONT_NO_TTF
-// FIXME: This is an old function and needs to be removed or updated
-bool NFont::load(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg)
-{
-    free();
-
-    if(ttf == NULL)
-        return false;
-
-    SDL_Color fgc = fg.to_SDL_Color();
-    ttf_source_color = fgc;
-    SDL_Color bgc = bg.to_SDL_Color();
-
-    SDL_Surface* surfs[127 - 33];
-    int width = 0;
-    int height = 0;
-
-    char buff[2];
-    buff[1] = '\0';
-    for(int i = 0; i < 127 - 33; i++)
-    {
-        buff[0] = i + 33;
-        surfs[i] = TTF_RenderText_Shaded(ttf, buff, fgc, bgc);
-        width += surfs[i]->w;
-        height = (height < surfs[i]->h)? surfs[i]->h : height;
-    }
-
-    SDL_Surface* result = createSurface24(width + 127 - 33 + 1,height);
-
-    Uint32 pink = SDL_MapRGB(result->format, 255, 0, 255);
-    Uint32 bgcolor = SDL_MapRGB(result->format, bg.r, bg.g, bg.b);
-
-    SDL_Rect pixel = {1, 0, 1, 1};
-    SDL_Rect line = {1, 0, 1, Uint16(result->h)};
-
-    int x = 1;
-    SDL_Rect dest = {Sint16(x), 0, 0, 0};
-    for(int i = 0; i < 127 - 33; i++)
-    {
-        pixel.x = line.x = x-1;
-        SDL_FillRect(result, &line, bgcolor);
-        SDL_FillRect(result, &pixel, pink);
-
-        SDL_BlitSurface(surfs[i], NULL, result, &dest);
-
-        x += surfs[i]->w + 1;
-        dest.x = x;
-
-        SDL_FreeSurface(surfs[i]);
-    }
-    pixel.x = line.x = x-1;
-    SDL_FillRect(result, &line, bgcolor);
-    SDL_FillRect(result, &pixel, pink);
-
-    return load(result);
-}
 
 
 bool NFont::addGlyph(Uint32 codepoint, Uint16 width, Uint16 maxWidth, Uint16 maxHeight)
@@ -845,7 +787,12 @@ bool NFont::addGlyph(Uint32 codepoint, Uint16 width, Uint16 maxWidth, Uint16 max
 }
 
 
-bool NFont::load(TTF_Font* ttf, const NFont::Color& fg)
+bool NFont::load(TTF_Font* ttf)
+{
+    return load(ttf, default_color);
+}
+
+bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
 {
     free();
 
@@ -860,8 +807,10 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& fg)
     
     baseline = height - descent;
 
-    SDL_Color color = fg.to_SDL_Color();
-    ttf_source_color = color;
+    default_color = color;
+    ttf_source_color = color.to_SDL_Color();
+    
+    SDL_Color white = {255, 255, 255, 255};
 
     SDL_Surface* surf;
     
@@ -880,7 +829,7 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& fg)
     for(int i = 0; i < 127 - 32; i++)
     {
         buff[0] = i + 32;
-        surf = TTF_RenderUTF8_Blended(ttf, buff, color);
+        surf = TTF_RenderUTF8_Blended(ttf, buff, white);
         SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_NONE);
         
         SDL_Rect srcRect = {0, 0, surf->w, surf->h};
@@ -902,7 +851,7 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& fg)
 }
 
 
-bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style)
+bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
 {
     if(!TTF_WasInit() && TTF_Init() < 0)
     {
@@ -926,35 +875,7 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color&
         TTF_SetFontOutline(ttf, 1);
     }
     TTF_SetFontStyle(ttf, style);
-    bool result = load(ttf, fg);
-    owns_ttf_source = true;
-    return result;
-}
-
-bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style)
-{
-    if(!TTF_WasInit() && TTF_Init() < 0)
-    {
-    	GPU_LogError("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
-        return false;
-    }
-    
-    TTF_Font* ttf = TTF_OpenFont(filename_ttf, pointSize);
-    if(ttf == NULL)
-    {
-    	GPU_LogError("Unable to load TrueType font: %s \n", TTF_GetError());
-        return false;
-    }
-    
-    bool outline = false;
-    outline = (style & TTF_STYLE_OUTLINE);
-    if(outline)
-    {
-        style &= ~TTF_STYLE_OUTLINE;
-        TTF_SetFontOutline(ttf, 1);
-    }
-    TTF_SetFontStyle(ttf, style);
-    bool result = load(ttf, fg, bg);
+    bool result = load(ttf, color);
     owns_ttf_source = true;
     return result;
 }
@@ -1208,8 +1129,6 @@ GPU_Rect NFont::drawAnimated(GPU_Target* dest, float x, float y, const NFont::An
     data.startY = y;
 
     data.align = align;
-    
-    
 
     for(; *c != '\0'; c++)
     {
@@ -1270,7 +1189,7 @@ GPU_Rect NFont::drawAnimated(GPU_Target* dest, float x, float y, const NFont::An
 
         x += destW + destLetterSpacing;
     }
-
+    
     return data.dirtyRect;
 }
 
@@ -1284,6 +1203,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const char* formatted_t
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return drawLeft(dest, x, y, buffer);
 }
 
@@ -1346,6 +1266,8 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, const char* formatte
     oldclip = dest->clip_rect;
     newclip = rectIntersect(oldclip, box.to_GPU_Rect());
     GPU_SetClipRect(dest, newclip);
+    
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
 
     int y = box.y;
 
@@ -1404,6 +1326,8 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, con
     oldclip = dest->clip_rect;
     newclip = rectIntersect(oldclip, box.to_GPU_Rect());
     GPU_SetClipRect(dest, newclip);
+    
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
 
     int y = box.y;
 
@@ -1479,6 +1403,8 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, con
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
+    
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
 
     int y0 = y;
 
@@ -1527,6 +1453,8 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, Ali
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
+    
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
 
     int y0 = y;
 
@@ -1724,6 +1652,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Scale& scale, con
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return drawLeft(dest, x, y, scale, buffer);
 }
 
@@ -1736,6 +1665,8 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, AlignEnum align, const 
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
+    
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
 
     switch(align)
     {
@@ -1776,8 +1707,12 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Effect& effect, c
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
-
-    GPU_SetRGBA(src, effect.color.r, effect.color.g, effect.color.b, effect.color.a);
+    
+    if(effect.use_color)
+        GPU_SetRGBA(src, effect.color.r, effect.color.g, effect.color.b, effect.color.a);
+    else
+        GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
+    
     GPU_Rect result;
     switch(effect.alignment)
     {
@@ -1806,6 +1741,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams
     vsprintf(buffer, text, lst);
     va_end(lst);
 
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return drawAnimated(dest, x, y, params, posFn, NFont::LEFT);
 }
 
@@ -1816,6 +1752,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams
     vsprintf(buffer, text, lst);
     va_end(lst);
 
+    GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return drawAnimated(dest, x, y, params, posFn, align);
 }
 
@@ -2207,6 +2144,11 @@ Uint16 NFont::getMaxWidth() const
     return maxWidth;
 }
 
+NFont::Color NFont::getDefaultColor() const
+{
+    return default_color;
+}
+
 
 
 
@@ -2258,6 +2200,11 @@ void NFont::setBaseline()
 void NFont::setBaseline(Uint16 Baseline)
 {
     baseline = Baseline;
+}
+
+void NFont::setDefaultColor(const Color& color)
+{
+    default_color = color;
 }
 
 void NFont::enableTTFOwnership()
