@@ -28,9 +28,10 @@ void loop_drawSomeText(GPU_Target* screen)
     NFont font("../fonts/FreeSans.ttf", 20, NFont::Color(0,0,0,255));
     NFont font2("../fonts/FreeSans.ttf", 18, NFont::Color(0,200,0,255));
     NFont font3("../fonts/FreeSans.ttf", 22, NFont::Color(0,0,200,255));
+    NFont font4("../fonts/FreeSans.ttf", 20, NFont::Color(255,255,255,255));
     
-    GPU_Rect leftHalf = {0,0,3*screen->w/4, screen->h};
-    GPU_Rect rightHalf = {leftHalf.w,0,screen->w/4, screen->h};
+    GPU_Rect leftHalf = {0,0,3*screen->w/4.0f, float(screen->h)};
+    GPU_Rect rightHalf = {leftHalf.w,0,screen->w/4.0f, float(screen->h)};
     
     GPU_Rect box1 = {215, 50, 150, 150};
     GPU_Rect box2 = {215, box1.y + box1.h + 50, 150, 150};
@@ -68,6 +69,8 @@ void loop_drawSomeText(GPU_Target* screen)
 	    font.draw(screen, rightHalf.x, 25, NFont::CENTER, "draw align CENTER");
 	    font.draw(screen, rightHalf.x, 45, NFont::RIGHT, "draw align RIGHT");
 	    
+	    font4.draw(screen, rightHalf.x, 65, NFont::Color(255, 100, 100, 255), "Colored text");
+	    
 	    float time = SDL_GetTicks()/1000.0f;
 	    
 	    font.draw(screen, rightHalf.x, 90, NFont::AnimParams(time), &NFontAnim::bounce, NFont::RIGHT, "bounce align RIGHT");
@@ -100,15 +103,15 @@ void loop_drawSomeText(GPU_Target* screen)
 	    drawRect(screen, box3, GPU_MakeColor(0, 0, 0, 255));
 	    
 	    GPU_SetClipRect(screen, box1);
-	    SDL_Rect box1a = {box1.x, box1.y - scroll, box1.w, box1.h + scroll};
+	    GPU_Rect box1a = {box1.x, box1.y - scroll, box1.w, box1.h + scroll};
         font.drawBox(screen, box1a, "box align LEFT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    GPU_SetClipRect(screen, box2);
-	    SDL_Rect box2a = {box2.x, box2.y - scroll, box2.w, box2.h + scroll};
+	    GPU_Rect box2a = {box2.x, box2.y - scroll, box2.w, box2.h + scroll};
         font.drawBox(screen, box2a, NFont::CENTER, "box align CENTER\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    GPU_SetClipRect(screen, box3);
-	    SDL_Rect box3a = {box3.x, box3.y - scroll, box3.w, box3.h + scroll};
+	    GPU_Rect box3a = {box3.x, box3.y - scroll, box3.w, box3.h + scroll};
         font.drawBox(screen, box3a, NFont::RIGHT, "box align RIGHT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    GPU_UnsetClip(screen);

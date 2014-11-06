@@ -1720,30 +1720,6 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Scale& scale, con
     return drawLeft(dest, x, y, scale, buffer);
 }
 
-
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...)
-{
-    if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
-
-    va_list lst;
-    va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
-    va_end(lst);
-
-    switch(effect.alignment)
-    {
-        case LEFT:
-            return drawLeft(dest, x, y, effect.scale, buffer);
-        case CENTER:
-            return drawCenter(dest, x, y, effect.scale, buffer);
-        case RIGHT:
-            return drawRight(dest, x, y, effect.scale, buffer);
-    }
-
-    return GPU_MakeRect(x, y, 0, 0);
-}
-
 GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
@@ -1765,6 +1741,55 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, AlignEnum align, const 
     }
 
     return GPU_MakeRect(x, y, 0, 0);
+}
+
+GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return GPU_MakeRect(x, y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+
+    GPU_SetRGBA(src, color.r, color.g, color.b, color.a);
+    GPU_Rect result = drawLeft(dest, x, y, buffer);
+    GPU_SetRGBA(src, 255, 255, 255, 255);
+    return result;
+}
+
+
+GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return GPU_MakeRect(x, y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+
+    GPU_SetRGBA(src, effect.color.r, effect.color.g, effect.color.b, effect.color.a);
+    GPU_Rect result;
+    switch(effect.alignment)
+    {
+        case LEFT:
+            result = drawLeft(dest, x, y, effect.scale, buffer);
+            break;
+        case CENTER:
+            result = drawCenter(dest, x, y, effect.scale, buffer);
+            break;
+        case RIGHT:
+            result = drawRight(dest, x, y, effect.scale, buffer);
+            break;
+        default:
+            result = GPU_MakeRect(x, y, 0, 0);
+            break;
+    }
+    GPU_SetRGBA(src, 255, 255, 255, 255);
+
+    return result;
 }
 
 GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, const char* text, ...)
