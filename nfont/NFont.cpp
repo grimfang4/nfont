@@ -1171,6 +1171,26 @@ GPU_Rect NFont::drawLeft(GPU_Target* dest, float x, float y, const char* text)
 
 GPU_Rect NFont::drawAnimated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align)
 {
+    const char* c = buffer;
+    Scale scale;
+    Rectf srcRect, dstRect, copyS, copyD;
+    data.dirtyRect = GPU_MakeRect(x, y, 0, 0);
+
+    if(c == NULL || src == NULL || dest == NULL)
+        return data.dirtyRect;
+
+    srcRect.y = baseline - ascent;
+    srcRect.h = dstRect.h = height;
+    //dstRect.h *= scale.y;
+    float destH = dstRect.h * scale.y;
+    //dstRect.x = x;
+    //dstRect.y = y;
+    float destLineSpacing = lineSpacing*scale.y;
+    float destLetterSpacing = letterSpacing*scale.x;
+    
+    
+    int preFnX = x;
+    int preFnY = y;
     data.font = this;
     data.dest = dest;
     data.src = src;
@@ -1188,56 +1208,42 @@ GPU_Rect NFont::drawAnimated(GPU_Target* dest, float x, float y, const NFont::An
     data.startY = y;
 
     data.align = align;
-
-    int preFnX = x;
-    int preFnY = y;
-
-    const char* c = buffer;
-    unsigned char num;
-    GPU_Rect srcRect, dstRect, copyS, copyD;
-
-    if(c == NULL || src == NULL || dest == NULL)
-        return GPU_MakeRect(x,y,0,0);
-
-    srcRect.y = baseline - ascent;
-    srcRect.h = dstRect.h = height;
-    dstRect.x = x;
-    dstRect.y = y;
+    
+    
 
     for(; *c != '\0'; c++)
     {
         data.index++;
         data.letterNum++;
-
+        
         if(*c == '\n')
         {
             data.letterNum = 1;
             data.wordNum = 1;
             data.lineNum++;
-
-            x = data.startX;  // carriage return
-            y += height + lineSpacing;
+            
+            x = data.startX;
+            y += destH + destLineSpacing;
             continue;
         }
-        if (*c == ' ')
+        
+        GlyphData glyph;
+        Uint32 codepoint = getCodepointFromUTF8(c);  // Increments 'c' to skip the extra UTF-8 bytes
+        if(!getGlyphData(&glyph, codepoint))
+            continue;  // Skip bad characters
+
+        if (codepoint == ' ')
         {
             data.letterNum = 1;
             data.wordNum++;
-
-            ///x += charWidth[0] + letterSpacing;
+            
+            x += glyph.rect.w*scale.x + destLetterSpacing;
             continue;
         }
-        unsigned char ctest = (unsigned char)(*c);
-        // Skip bad characters
-        if(ctest < 33 || (ctest > 126 && ctest < 161))
+        /*if(x >= dest->w)
             continue;
-        //if(x >= dest->w) // This shouldn't be used with position control
-        //    continue;
-        num = ctest - 33;
-        if(num > 126) // shift the extended characters down to the array index
-            num -= 34;
-        ///srcRect.x = charPos[num];
-        ///srcRect.w = dstRect.w = charWidth[num];
+        if(y >= dest->h)
+            continue;*/
 
         preFnX = x;  // Save real position
         preFnY = y;
@@ -1247,21 +1253,22 @@ GPU_Rect NFont::drawAnimated(GPU_Target* dest, float x, float y, const NFont::An
 
         dstRect.x = x;
         dstRect.y = y;
-
-        copyS = srcRect;
+        
+        float destW = glyph.rect.w*scale.x;
+        copyS = glyph.rect;
         copyD = dstRect;
-        GPU_Blit(src, &srcRect, dest, dstRect.x + srcRect.w/2, dstRect.y + srcRect.h/2);
+        
+        GPU_Rect sr = copyS.to_GPU_Rect();
+        dstRect = scaleAndBlit(src, &sr, dest, dstRect.x + srcRect.w/2, dstRect.y + srcRect.h/2, scale.x, scale.y);
         if(data.dirtyRect.w == 0 || data.dirtyRect.h == 0)
-            data.dirtyRect = dstRect;
+            data.dirtyRect = dstRect.to_GPU_Rect();
         else
-            data.dirtyRect = rectUnion(data.dirtyRect, dstRect);
-        srcRect = copyS;
-        dstRect = copyD;
-
+            data.dirtyRect = rectUnion(data.dirtyRect, dstRect.to_GPU_Rect());
+        
         x = preFnX;  // Restore real position
         y = preFnY;
 
-        x += dstRect.w + letterSpacing;
+        x += destW + destLetterSpacing;
     }
 
     return data.dirtyRect;
