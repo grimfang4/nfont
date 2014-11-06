@@ -502,29 +502,35 @@ NFont::NFont()
 
 NFont::NFont(const NFont& font)
 {
+    init();
     load(copySurface(font.srcSurface));
 }
 
 NFont::NFont(SDL_Surface* src)
 {
+    init();
     load(src);
 }
 
 #ifndef NFONT_NO_TTF
 NFont::NFont(TTF_Font* ttf, const NFont::Color& fg)
 {
+    init();
     load(ttf, fg);
 }
 NFont::NFont(TTF_Font* ttf, const NFont::Color& fg, const NFont::Color& bg)
 {
+    init();
     load(ttf, fg, bg);
 }
 NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style)
 {
+    init();
     load(filename_ttf, pointSize, fg, style);
 }
 NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, const NFont::Color& bg, int style)
 {
+    init();
     load(filename_ttf, pointSize, fg, bg, style);
 }
 
