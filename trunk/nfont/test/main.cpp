@@ -42,10 +42,9 @@ std::string get_string_from_file(const std::string& filename)
 
 void loop_drawSomeText(GPU_Target* screen)
 {
-    NFont font("../fonts/FreeSans.ttf", 20, NFont::Color(0,0,0,255));
+    NFont font("../fonts/FreeSans.ttf", 20);
     NFont font2("../fonts/FreeSans.ttf", 18, NFont::Color(0,200,0,255));
     NFont font3("../fonts/FreeSans.ttf", 22, NFont::Color(0,0,200,255));
-    NFont font4("../fonts/FreeSans.ttf", 20);
     
     std::string utf8_string = get_string_from_file("utf8_sample.txt");
     
@@ -88,14 +87,14 @@ void loop_drawSomeText(GPU_Target* screen)
 	    font.draw(screen, rightHalf.x, 25, NFont::CENTER, "draw align CENTER");
 	    font.draw(screen, rightHalf.x, 45, NFont::RIGHT, "draw align RIGHT");
 	    
-	    font4.draw(screen, rightHalf.x, 65, NFont::Color(255, 100, 100, 255), "Colored text");
-	    font4.draw(screen, 0, 0, NFont::Scale(0.85f), "UTF-8 text: %s", utf8_string.c_str());
-	    
 	    float time = SDL_GetTicks()/1000.0f;
 	    
+	    font.draw(screen, rightHalf.x, 65, NFont::Color(128 + 127*sin(time), 128 + 127*sin(time/2), 128 + 127*sin(time/4), 128 + 127*sin(time/8)), "Dynamic colored text");
+	    font.draw(screen, 0, 0, NFont::Scale(0.85f), "UTF-8 text: %s", utf8_string.c_str());
+	    
 	    font.draw(screen, rightHalf.x, 90, NFont::AnimParams(time), &NFontAnim::bounce, NFont::RIGHT, "bounce align RIGHT");
-	    font3.draw(screen, rightHalf.x, 120, NFont::AnimParams(time), &NFontAnim::bounce, NFont::CENTER, "bounce align CENTER");
-	    font2.draw(screen, rightHalf.x, 150, NFont::AnimParams(time), &NFontAnim::bounce, "bounce align LEFT");
+	    font2.draw(screen, rightHalf.x, 120, NFont::AnimParams(time), &NFontAnim::bounce, NFont::CENTER, "bounce align CENTER");
+	    font3.draw(screen, rightHalf.x, 150, NFont::AnimParams(time), &NFontAnim::bounce, "bounce align LEFT");
 	    
 	    font.draw(screen, rightHalf.x, 180, NFont::AnimParams(time), &NFontAnim::wave, NFont::RIGHT, "wave align RIGHT");
 	    font2.draw(screen, rightHalf.x, 210, NFont::AnimParams(time), &NFontAnim::wave, NFont::CENTER, "wave align CENTER");
