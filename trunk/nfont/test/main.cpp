@@ -2,7 +2,9 @@
 #include "../NFont.h"
 
 #include <cmath>
+#include <string>
 
+// UTF-8 Sample from http://www.columbia.edu/~fdc/utf8/
 
 void drawRect(GPU_Target* target, const GPU_Rect& rect, const SDL_Color& color)
 {
@@ -23,12 +25,29 @@ void drawRect(GPU_Target* target, const GPU_Rect& rect, const SDL_Color& color)
     GPU_RectangleFilled(target, r.x, r.y, r.x + r.w - 1, r.y + r.h - 1, color);
 }
 
+std::string get_string_from_file(const std::string& filename)
+{
+    std::string result;
+    SDL_RWops* rwops = SDL_RWFromFile(filename.c_str(), "r");
+    
+    char c;
+    while(SDL_RWread(rwops, &c, 1, 1) > 0)
+    {
+        result += c;
+    }
+    
+    SDL_RWclose(rwops);
+    return result;
+}
+
 void loop_drawSomeText(GPU_Target* screen)
 {
     NFont font("../fonts/FreeSans.ttf", 20, NFont::Color(0,0,0,255));
     NFont font2("../fonts/FreeSans.ttf", 18, NFont::Color(0,200,0,255));
     NFont font3("../fonts/FreeSans.ttf", 22, NFont::Color(0,0,200,255));
-    NFont font4("../fonts/FreeSans.ttf", 20, NFont::Color(255,255,255,255));
+    NFont font4("../fonts/FreeSans.ttf", 20);
+    
+    std::string utf8_string = get_string_from_file("utf8_sample.txt");
     
     GPU_Rect leftHalf = {0,0,3*screen->w/4.0f, float(screen->h)};
     GPU_Rect rightHalf = {leftHalf.w,0,screen->w/4.0f, float(screen->h)};
@@ -70,6 +89,7 @@ void loop_drawSomeText(GPU_Target* screen)
 	    font.draw(screen, rightHalf.x, 45, NFont::RIGHT, "draw align RIGHT");
 	    
 	    font4.draw(screen, rightHalf.x, 65, NFont::Color(255, 100, 100, 255), "Colored text");
+	    font4.draw(screen, 0, 0, NFont::Scale(0.85f), "UTF-8 text: %s", utf8_string.c_str());
 	    
 	    float time = SDL_GetTicks()/1000.0f;
 	    
