@@ -259,7 +259,20 @@ class NFont
     
     
     // Static functions
-    static SDL_Surface* verticalGradient(SDL_Surface* targetSurface, Uint32 topColor, Uint32 bottomColor, int heightAdjust = 0);
+    
+    /*!
+    Returns the Uint32 codepoint parsed from the given UTF-8 string.
+    \param c A string of proper UTF-8 character values.
+    \param advance_pointer If true, the source pointer will be incremented to skip the extra bytes from multibyte codepoints.
+    */
+    static Uint32 getCodepointFromUTF8(const char*& c, bool advance_pointer = false);
+    
+    /*!
+    Parses the given codepoint and stores the UTF-8 bytes in 'result'.  The result is NULL terminated.
+    \param result A memory buffer for the UTF-8 values.  Must be at least 5 bytes long.
+    \param codepoint The Uint32 codepoint to parse.
+    */
+    static void getUTF8FromCodepoint(char* result, Uint32 codepoint);
     
     // Static accessors
     static void setAnimData(void* data);
@@ -272,7 +285,8 @@ class NFont
     #ifndef NFONT_NO_TTF
         NFont(TTF_Font* ttf);
         NFont(TTF_Font* ttf, const NFont::Color& color);
-        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);
+        NFont(const char* filename_ttf, Uint32 pointSize);
+        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
 
     ~NFont();
@@ -284,7 +298,8 @@ class NFont
     #ifndef NFONT_NO_TTF
         bool load(TTF_Font* ttf);
         bool load(TTF_Font* ttf, const NFont::Color& color);
-        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style = TTF_STYLE_NORMAL);
+        bool load(const char* filename_ttf, Uint32 pointSize);
+        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
     
     void free();

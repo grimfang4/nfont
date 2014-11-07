@@ -32,6 +32,9 @@ THE SOFTWARE.
 
 #include "NFont.h"
 #include <cmath>
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
 
 #include <string>
 #include <cstring>
@@ -398,6 +401,103 @@ GPU_Rect NFont::Rectf::to_GPU_Rect() const
 
 
 
+
+
+static NFont_Rectf scaleAndBlit(GPU_Image* src, GPU_Rect* srcrect, GPU_Target* dest, float x, float y, float xscale, float yscale)
+{
+    float w = srcrect->w * xscale;
+    float h = srcrect->h * yscale;
+    
+    // FIXME: Why does the scaled offset look so wrong?
+    GPU_BlitScale(src, srcrect, dest, x + xscale*srcrect->w/2.0f, y + srcrect->h/2.0f, xscale, yscale);
+
+    NFont_Rectf result(x, y, w, h);
+    return result;
+}
+
+void NFont::getUTF8FromCodepoint(char* result, Uint32 codepoint)
+{
+    if(result == NULL)
+        return;
+    
+    char a, b, c, d;
+    
+    a = (codepoint >> 24) & 0xFF;
+    b = (codepoint >> 16) & 0xFF;
+    c = (codepoint >> 8) & 0xFF;
+    d = codepoint & 0xFF;
+    
+    if(a == 0)
+    {
+        if(b == 0)
+        {
+            if(c == 0)
+            {
+                result[0] = d;
+                result[1] = '\0';
+            }
+            else
+            {
+                result[0] = c;
+                result[1] = d;
+                result[2] = '\0';
+            }
+        }
+        else
+        {
+            result[0] = b;
+            result[1] = c;
+            result[2] = d;
+            result[3] = '\0';
+        }
+    }
+    else
+    {
+        result[0] = a;
+        result[1] = b;
+        result[2] = c;
+        result[3] = d;
+        result[4] = '\0';
+    }
+}
+
+Uint32 NFont::getCodepointFromUTF8(const char*& c, bool advance_pointer)
+{
+    Uint32 result = 0;
+    if((unsigned char)*c <= 0x7F)
+        result = *c;
+    else if((unsigned char)*c < 0xE0)
+    {
+        result |= (unsigned char)(*c) << 8;
+        result |= (unsigned char)(*(c+1));
+        if(advance_pointer)
+            c++;
+    }
+    else if((unsigned char)*c < 0xF0)
+    {
+        result |= (unsigned char)(*c) << 16;
+        result |= (unsigned char)(*(c+1)) << 8;
+        result |= (unsigned char)(*(c+2));
+        if(advance_pointer)
+            c += 2;
+    }
+    else
+    {
+        result |= (unsigned char)(*c) << 24;
+        result |= (unsigned char)(*(c+1)) << 16;
+        result |= (unsigned char)(*(c+2)) << 8;
+        result |= (unsigned char)(*(c+3));
+        if(advance_pointer)
+            c += 3;
+    }
+    return result;
+}
+
+
+
+
+
+
 // Static setters
 void NFont::setAnimData(void* data)
 {
@@ -413,85 +513,8 @@ void NFont::setBuffer(unsigned int size)
         buffer = new char[1024];
 }
 
-SDL_Surface* NFont::verticalGradient(SDL_Surface* targetSurface, Uint32 top, Uint32 bottom, int heightAdjust)
-{
-    SDL_Surface* surface = targetSurface;
-    if(surface == NULL)
-        return NULL;
-
-    Uint8 tr, tg, tb;
-
-    SDL_GetRGB(top, surface->format, &tr, &tg, &tb);
-
-    Uint8 br, bg, bb;
-
-    SDL_GetRGB(bottom, surface->format, &br, &bg, &bb);
-
-    SDL_BlendMode blendMode;
-    SDL_GetSurfaceBlendMode(surface, &blendMode);
-    bool useCK = (blendMode == SDL_BLENDMODE_NONE);  // colorkey if no alpha
-    Uint32 colorkey;
-    SDL_GetColorKey(surface, &colorkey);
-
-    Uint8 r, g, b, a;
-    float ratio;
-    Uint32 color;
-    int temp;
-
-    for (int x = 0, y = 0; y < surface->h; x++)
-    {
-        if (x >= surface->w)
-        {
-            x = 0;
-            y++;
-
-            if (y >= surface->h)
-                break;
-        }
-
-        ratio = (y - 2)/float(surface->h - heightAdjust);  // the neg 2 is for full color at top?
-
-        if(!useCK)
-        {
-            color = getPixel(surface, x, y);
-            SDL_GetRGBA(color, surface->format, &r, &g, &b, &a);  // just getting alpha
-        }
-        else
-            a = SDL_ALPHA_OPAQUE;
-
-        // Get and clamp the new values
-        temp = int(tr*(1-ratio) + br*ratio);
-        r = temp < 0? 0 : temp > 255? 255 : temp;
-
-        temp = int(tg*(1-ratio) + bg*ratio);
-        g = temp < 0? 0 : temp > 255? 255 : temp;
-
-        temp = int(tb*(1-ratio) + bb*ratio);
-        b = temp < 0? 0 : temp > 255? 255 : temp;
 
 
-        color = SDL_MapRGBA(surface->format, r, g, b, a);
-
-
-        if(useCK)
-        {
-            if(getPixel(surface, x, y) == colorkey)
-                continue;
-            if(color == colorkey)
-                color == 0? color++ : color--;
-        }
-
-        // make sure it isn't pink
-        if(color == SDL_MapRGBA(surface->format, 0xFF, 0, 0xFF, a))
-            color--;
-        if(getPixel(surface, x, y) == SDL_MapRGBA(surface->format, 0xFF, 0, 0xFF, SDL_ALPHA_OPAQUE))
-            continue;
-
-        setPixel(surface, x, y, color);
-
-    }
-    return surface;
-}
 
 
 // Constructors
@@ -523,10 +546,15 @@ NFont::NFont(TTF_Font* ttf, const NFont::Color& color)
     init();
     load(ttf, color);
 }
-NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& fg, int style)
+NFont::NFont(const char* filename_ttf, Uint32 pointSize)
 {
     init();
-    load(filename_ttf, pointSize, fg, style);
+    load(filename_ttf, pointSize);
+}
+NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
+{
+    init();
+    load(filename_ttf, pointSize, color, style);
 }
 
 #endif
@@ -852,6 +880,11 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
 }
 
 
+bool NFont::load(const char* filename_ttf, Uint32 pointSize)
+{
+    return load(filename_ttf, pointSize, default_color);
+}
+
 bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
 {
     if(!TTF_WasInit() && TTF_Init() < 0)
@@ -897,93 +930,6 @@ void NFont::free()
     src = NULL;
     
     init();
-}
-
-
-
-NFont_Rectf scaleAndBlit(GPU_Image* src, GPU_Rect* srcrect, GPU_Target* dest, float x, float y, float xscale, float yscale)
-{
-    float w = srcrect->w * xscale;
-    float h = srcrect->h * yscale;
-    
-    // FIXME: Why does the scaled offset look so wrong?
-    GPU_BlitScale(src, srcrect, dest, x + xscale*srcrect->w/2.0f, y + srcrect->h/2.0f, xscale, yscale);
-
-    NFont_Rectf result(x, y, w, h);
-    return result;
-}
-
-void getUTF8FromCodepoint(char* result, Uint32 codepoint)
-{
-    char a, b, c, d;
-    
-    a = (codepoint >> 24) & 0xFF;
-    b = (codepoint >> 16) & 0xFF;
-    c = (codepoint >> 8) & 0xFF;
-    d = codepoint & 0xFF;
-    
-    memset(result, 0, 4);
-    
-    if(a == 0)
-    {
-        if(b == 0)
-        {
-            if(c == 0)
-            {
-                result[0] = d;
-            }
-            else
-            {
-                result[0] = c;
-                result[1] = d;
-            }
-        }
-        else
-        {
-            result[0] = b;
-            result[1] = c;
-            result[2] = d;
-        }
-    }
-    else
-    {
-        result[0] = a;
-        result[1] = b;
-        result[2] = c;
-        result[3] = d;
-    }
-}
-
-Uint32 getCodepointFromUTF8(const char*& c)
-{
-    Uint32 result = 0;
-    if((unsigned char)*c <= 0x7F)
-        result = *c;
-    else if((unsigned char)*c < 0xE0)
-    {
-        result |= (unsigned char)(*c) << 8;
-        c++;
-        result |= (unsigned char)*c;
-    }
-    else if((unsigned char)*c < 0xF0)
-    {
-        result |= (unsigned char)(*c) << 16;
-        c++;
-        result |= (unsigned char)(*c) << 8;
-        c++;
-        result |= (unsigned char)*c;
-    }
-    else
-    {
-        result |= (unsigned char)(*c) << 24;
-        c++;
-        result |= (unsigned char)(*c) << 16;
-        c++;
-        result |= (unsigned char)(*c) << 8;
-        c++;
-        result |= (unsigned char)*c;
-    }
-    return result;
 }
 
 bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
@@ -1057,7 +1003,7 @@ GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const Scale& sca
         }
         
         GlyphData glyph;
-        Uint32 codepoint = getCodepointFromUTF8(c);  // Increments 'c' to skip the extra UTF-8 bytes
+        Uint32 codepoint = getCodepointFromUTF8(c, true);  // Increments 'c' to skip the extra UTF-8 bytes
         if(!getGlyphData(&glyph, codepoint))
         {
             codepoint = ' ';
@@ -1156,7 +1102,7 @@ GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont:
         }
         
         GlyphData glyph;
-        Uint32 codepoint = getCodepointFromUTF8(c);  // Increments 'c' to skip the extra UTF-8 bytes
+        Uint32 codepoint = getCodepointFromUTF8(c, true);  // Increments 'c' to skip the extra UTF-8 bytes
         if(!getGlyphData(&glyph, codepoint))
         {
             codepoint = ' ';
@@ -1835,7 +1781,7 @@ Uint16 NFont::getWidth(const char* formatted_text, ...)
         }
 
         GlyphData glyph;
-        Uint32 codepoint = getCodepointFromUTF8(c);
+        Uint32 codepoint = getCodepointFromUTF8(c, true);
         if(getGlyphData(&glyph, codepoint) || getGlyphData(&glyph, ' '))
             width += glyph.rect.w;
     }
