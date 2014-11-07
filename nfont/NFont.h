@@ -336,7 +336,6 @@ class NFont
     
     TTF_Font* ttf_source;  // TTF_Font source of characters
     bool owns_ttf_source;  // Can we delete the TTF_Font ourselves?
-    SDL_Color ttf_source_color;
     SDL_Surface* srcSurface;  // bitmap source of characters
     GPU_Image* src;  // bitmap source of characters
     
