@@ -547,7 +547,6 @@ void NFont::init()
 {
     ttf_source = NULL;
     owns_ttf_source = false;
-    ttf_source_color = GPU_MakeColor(255, 255, 255, 255);
     src = NULL;
     srcSurface = NULL;
     
@@ -740,16 +739,17 @@ bool NFont::load(SDL_Surface* FontSurface)
     lastGlyph.w = 0;
     for(j = 0; j < i; j++)
     {
-        SDL_Rect srcRect = {charPos[j], 0, charWidth[j], srcSurface->h};
-        if(!addGlyph(j+33, charWidth[j], dest->w, dest->h))
-            break;
-        
-        SDL_Rect destrect = lastGlyph;
-        SDL_BlitSurface(srcSurface, &srcRect, dest, &destrect);
+        if(addGlyph(j+33, charWidth[j], dest->w, dest->h))
+        {
+            SDL_Rect srcRect = {charPos[j], 0, charWidth[j], srcSurface->h};
+            SDL_Rect destrect = lastGlyph;
+            SDL_BlitSurface(srcSurface, &srcRect, dest, &destrect);
+        }
     }
     
     
     src = GPU_CopyImageFromSurface(dest);
+    GPU_SetImageFilter(src, GPU_FILTER_NEAREST);
     SDL_FreeSurface(dest);
     SDL_Color pink = {255, 0, 255, 255};
     makeColorTransparent(src, pink);
@@ -808,7 +808,6 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
     baseline = height - descent;
 
     default_color = color;
-    ttf_source_color = color.to_SDL_Color();
     
     SDL_Color white = {255, 255, 255, 255};
 
@@ -817,8 +816,9 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
     // Copy glyphs from the surface to the font texture and store the position data
     // Pack row by row into a square texture
     // Try figuring out dimensions that make sense for the font size.
-    unsigned int dim = height*8;
-    SDL_Surface* dest = createSurface32(dim, dim);
+    unsigned int w = height*12;
+    unsigned int h = height*12;
+    SDL_Surface* dest = createSurface32(w, h);
     lastGlyph.x = 0;
     lastGlyph.y = 0;
     lastGlyph.w = 0;
@@ -830,21 +830,22 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
     {
         buff[0] = i + 32;
         surf = TTF_RenderUTF8_Blended(ttf, buff, white);
-        SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_NONE);
+        if(surf == NULL)
+            continue;
         
-        SDL_Rect srcRect = {0, 0, surf->w, surf->h};
-        if(!addGlyph(buff[0], surf->w, dest->w, dest->h))
+        if(addGlyph(buff[0], surf->w, dest->w, dest->h))
         {
-            SDL_FreeSurface(surf);
-            break;
+            SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_NONE);
+            SDL_Rect srcRect = {0, 0, surf->w, surf->h};
+            SDL_Rect destrect = lastGlyph;
+            SDL_BlitSurface(surf, &srcRect, dest, &destrect);
         }
         
-        SDL_Rect destrect = lastGlyph;
-        SDL_BlitSurface(surf, &srcRect, dest, &destrect);
         SDL_FreeSurface(surf);
     }
     
     src = GPU_CopyImageFromSurface(dest);
+    GPU_SetImageFilter(src, GPU_FILTER_NEAREST);
     SDL_FreeSurface(dest);
     
     return true;
@@ -997,8 +998,10 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         char buff[5];
         getUTF8FromCodepoint(buff, codepoint);
         
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(ttf_source, buff, ttf_source_color);
-        SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_NONE);
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(ttf_source, buff, white);
+        if(surf == NULL)
+            return false;
         
         if(!addGlyph(codepoint, surf->w, dest->w, dest->h))
         {
@@ -1006,7 +1009,9 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
             return false;
         }
         
+        SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_NONE);
         GPU_Image* img = GPU_CopyImageFromSurface(surf);
+        GPU_SetImageFilter(img, GPU_FILTER_NEAREST);
         SDL_FreeSurface(surf);
         
         SDL_Rect destrect = lastGlyph;
@@ -1054,7 +1059,11 @@ GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const Scale& sca
         GlyphData glyph;
         Uint32 codepoint = getCodepointFromUTF8(c);  // Increments 'c' to skip the extra UTF-8 bytes
         if(!getGlyphData(&glyph, codepoint))
-            continue;  // Skip bad characters
+        {
+            codepoint = ' ';
+            if(!getGlyphData(&glyph, codepoint))
+                continue;  // Skip bad characters
+        }
 
         if (codepoint == ' ')
         {
@@ -1149,7 +1158,11 @@ GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont:
         GlyphData glyph;
         Uint32 codepoint = getCodepointFromUTF8(c);  // Increments 'c' to skip the extra UTF-8 bytes
         if(!getGlyphData(&glyph, codepoint))
-            continue;  // Skip bad characters
+        {
+            codepoint = ' ';
+            if(!getGlyphData(&glyph, codepoint))
+                continue;  // Skip bad characters
+        }
 
         if (codepoint == ' ')
         {
@@ -1815,8 +1828,6 @@ Uint16 NFont::getWidth(const char* formatted_text, ...)
 
     for (c = buffer; *c != '\0'; c++)
     {
-
-        // skip spaces and nonprintable characters
         if(*c == '\n')
         {
             bigWidth = bigWidth >= width? bigWidth : width;
@@ -1824,8 +1835,9 @@ Uint16 NFont::getWidth(const char* formatted_text, ...)
         }
 
         GlyphData glyph;
-        getGlyphData(&glyph, *c);
-        width += glyph.rect.w;
+        Uint32 codepoint = getCodepointFromUTF8(c);
+        if(getGlyphData(&glyph, codepoint) || getGlyphData(&glyph, ' '))
+            width += glyph.rect.w;
     }
     bigWidth = bigWidth >= width? bigWidth : width;
 
