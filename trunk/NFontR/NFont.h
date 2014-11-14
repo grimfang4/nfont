@@ -48,10 +48,6 @@ THE SOFTWARE.
 #define TTF_STYLE_OUTLINE	16
 
 
-#ifdef NFONT_USE_SDL_HELPERS
-    #include "SDL_Helpers.h"
-#endif
-
 class NFont
 {
   public:
@@ -74,7 +70,6 @@ class NFont
         SDL_Color to_SDL_Color() const;
     };
     
-#ifndef NFONT_USE_SDL_HELPERS
     class Rectf
     {
         public:
@@ -88,7 +83,6 @@ class NFont
         
         SDL_Rect to_SDL_Rect() const;
     };
-#endif
 
     
     enum AlignEnum {LEFT, CENTER, RIGHT};

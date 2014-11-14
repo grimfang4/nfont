@@ -180,9 +180,9 @@ void loop_drawSomeText()
         font2.draw(target, rightHalf.x, 520, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
         font3.draw(target, rightHalf.x, 550, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, "shake align LEFT");
         
-        font.drawColumn(target, 0, 50, 200, "column align LEFT\n\nColumn text wraps at the width of the column and has no maximum height.");
-        font.drawColumn(target, 100, 250, 200, NFont::CENTER, "column align CENTER\n\nColumn text wraps at the width of the column and has no maximum height.");
-        font.drawColumn(target, 200, 450, 200, NFont::RIGHT, "column align RIGHT\n\nColumn text wraps at the width of the column and has no maximum height.");
+        font.drawColumn(target, 0, 50, 200, "column align LEFT\nColumn text wraps at the width of the column and has no maximum height.");
+        font.drawColumn(target, 100, 250, 200, NFont::CENTER, "column align CENTER\nColumn text wraps at the width of the column and has no maximum height.");
+        font.drawColumn(target, 200, 450, 200, NFont::RIGHT, "column align RIGHT\nColumn text wraps at the width of the column and has no maximum height.");
 	    
 	    
 	    draw_rect(box1, black);
@@ -191,15 +191,15 @@ void loop_drawSomeText()
 	    
 	    set_clip(box1);
 	    NFont::Rectf box1a(box1.x, box1.y - scroll, box1.w, box1.h + scroll);
-        font.drawBox(target, box1a, "box align LEFT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        font.drawBox(target, box1a, "box align LEFT\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    set_clip(box2);
 	    NFont::Rectf box2a(box2.x, box2.y - scroll, box2.w, box2.h + scroll);
-        font.drawBox(target, box2a, NFont::CENTER, "box align CENTER\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        font.drawBox(target, box2a, NFont::CENTER, "box align CENTER\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    set_clip(box3);
 	    NFont::Rectf box3a(box3.x, box3.y - scroll, box3.w, box3.h + scroll);
-        font.drawBox(target, box3a, NFont::RIGHT, "box align RIGHT\n\nBox text wraps at the width of the box and is clipped to the maximum height.");
+        font.drawBox(target, box3a, NFont::RIGHT, "box align RIGHT\nBox text wraps at the width of the box and is clipped to the maximum height.");
         
 	    unset_clip();
 	    
