@@ -33,7 +33,7 @@ THE SOFTWARE.
 #ifndef NFONT_USE_NFONTR
 #include "NFont.h"
 #else
-#include "../NFontR/NFont.h"
+#include "NFontR/NFont.h"
 #endif
 
 #include <cmath>

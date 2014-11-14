@@ -42,6 +42,7 @@
 					<Add option="-DNFONT_USE_NFONTR" />
 					<Add directory="../../externals/SDL2/include/SDL2" />
 					<Add directory="../../externals/SDL_ttf/include" />
+					<Add directory=".." />
 				</Compiler>
 				<Linker>
 					<Add option="-mwindows" />
