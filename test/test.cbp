@@ -9,7 +9,7 @@
 			<Target title="NFont test">
 				<Option platforms="Windows;" />
 				<Option output="./test-NFont" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Debug/" />
+				<Option object_output="obj/NFont/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -34,7 +34,7 @@
 			<Target title="NFontR test">
 				<Option platforms="Windows;" />
 				<Option output="./test-NFontR" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Debug/" />
+				<Option object_output="obj/NFontR/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>

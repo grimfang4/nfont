@@ -371,7 +371,6 @@ SDL_Color NFont::Color::to_SDL_Color() const
 
 
 
-#ifndef NFONT_USE_SDL_HELPERS
 
 NFont::Rectf::Rectf()
     : x(0), y(0), w(0), h(0)
@@ -408,7 +407,6 @@ GPU_Rect NFont::Rectf::to_GPU_Rect() const
 }
 #endif
 
-#endif
 
 
 
