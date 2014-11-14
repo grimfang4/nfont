@@ -30,7 +30,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef NFONT_USE_NFONTR
 #include "NFont.h"
+#else
+#include "../NFontR/NFont.h"
+#endif
+
 #include <cmath>
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -42,8 +47,14 @@ THE SOFTWARE.
 using std::string;
 using std::list;
 
-#ifndef NFONT_USE_SDL_HELPERS
-#define NFont_Rectf NFont::Rectf
+#ifndef NFONTR
+#define NFont_Target GPU_Target
+#define NFont_Image GPU_Image
+#define NFont_Log GPU_LogError
+#else
+#define NFont_Target SDL_Renderer
+#define NFont_Image SDL_Texture
+#define NFont_Log SDL_Log
 #endif
 
 #define MIN(a,b) ((a) < (b)? (a) : (b))
@@ -250,21 +261,21 @@ static inline void drawPixel(SDL_Surface *surface, Sint16 x, Sint16 y, Uint32 co
     }
 }
 
-static inline GPU_Rect rectUnion(const GPU_Rect& A, const GPU_Rect& B)
+static inline NFont::Rectf rectUnion(const NFont::Rectf& A, const NFont::Rectf& B)
 {
     float x,x2,y,y2;
     x = MIN(A.x, B.x);
     y = MIN(A.y, B.y);
     x2 = MAX(A.x+A.w, B.x+B.w);
     y2 = MAX(A.y+A.h, B.y+B.h);
-    GPU_Rect result = {x, y, MAX(0, x2 - x), MAX(0, y2 - y)};
+    NFont::Rectf result(x, y, MAX(0, x2 - x), MAX(0, y2 - y));
     return result;
 }
 
 // Adapted from SDL_IntersectRect
-static inline GPU_Rect rectIntersect(const GPU_Rect& A, const GPU_Rect& B)
+static inline NFont::Rectf rectIntersect(const NFont::Rectf& A, const NFont::Rectf& B)
 {
-    GPU_Rect result;
+    NFont::Rectf result;
 	float Amin, Amax, Bmin, Bmax;
 
 	// Horizontal intersection
@@ -378,9 +389,11 @@ NFont::Rectf::Rectf(const SDL_Rect& rect)
     : x(rect.x), y(rect.y), w(rect.w), h(rect.h)
 {}
 
+#ifndef NFONTR
 NFont::Rectf::Rectf(const GPU_Rect& rect)
     : x(rect.x), y(rect.y), w(rect.w), h(rect.h)
 {}
+#endif
 
 SDL_Rect NFont::Rectf::to_SDL_Rect() const
 {
@@ -388,10 +401,12 @@ SDL_Rect NFont::Rectf::to_SDL_Rect() const
     return r;
 }
 
+#ifndef NFONTR
 GPU_Rect NFont::Rectf::to_GPU_Rect() const
 {
     return GPU_MakeRect(x, y, w, h);
 }
+#endif
 
 #endif
 
@@ -402,16 +417,34 @@ GPU_Rect NFont::Rectf::to_GPU_Rect() const
 
 
 
-
-static NFont_Rectf scaleAndBlit(GPU_Image* src, GPU_Rect* srcrect, GPU_Target* dest, float x, float y, float xscale, float yscale)
+static NFont::Rectf scaleAndBlit(NFont_Image* src, NFont::Rectf* srcrect, NFont_Target* dest, float x, float y, float xscale, float yscale)
 {
     float w = srcrect->w * xscale;
     float h = srcrect->h * yscale;
     
     // FIXME: Why does the scaled offset look so wrong?
-    GPU_BlitScale(src, srcrect, dest, x + xscale*srcrect->w/2.0f, y + srcrect->h/2.0f, xscale, yscale);
+    #ifndef NFONTR
+    GPU_Rect r = srcrect->to_GPU_Rect();
+    GPU_BlitScale(src, &r, dest, x + xscale*r.w/2.0f, y + r.h/2.0f, xscale, yscale);
+    #else
+    int flip = SDL_FLIP_NONE;
+    if(xscale < 0)
+    {
+        xscale = -xscale;
+        flip = flip | SDL_FLIP_HORIZONTAL;
+    }
+    if(yscale < 0)
+    {
+        yscale = -yscale;
+        flip = flip | SDL_FLIP_VERTICAL;
+    }
+    
+    SDL_Rect r = srcrect->to_SDL_Rect();
+    SDL_Rect dr = {int(x), int(y), int(xscale*r.w), int(yscale*r.h)};
+    SDL_RenderCopyEx(dest, src, &r, &dr, 0, NULL, SDL_RendererFlip(flip));
+    #endif
 
-    NFont_Rectf result(x, y, w, h);
+    NFont::Rectf result(x, y, w, h);
     return result;
 }
 
@@ -526,16 +559,29 @@ NFont::NFont()
 NFont::NFont(const NFont& font)
 {
     init();
+    #ifndef NFONTR
     load(copySurface(font.srcSurface));
+    #else
+    load(font.renderer, copySurface(font.srcSurface));
+    #endif
 }
 
+#ifndef NFONTR
 NFont::NFont(SDL_Surface* src)
+#else
+NFont::NFont(NFont_Target* renderer, SDL_Surface* src)
+#endif
 {
     init();
+    #ifndef NFONTR
     load(src);
+    #else
+    load(renderer, src);
+    #endif
 }
 
 #ifndef NFONT_NO_TTF
+#ifndef NFONTR
 NFont::NFont(TTF_Font* ttf)
 {
     init();
@@ -557,6 +603,30 @@ NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& col
     load(filename_ttf, pointSize, color, style);
 }
 
+#else
+
+NFont::NFont(NFont_Target* renderer, TTF_Font* ttf)
+{
+    init();
+    load(renderer, ttf, default_color);
+}
+NFont::NFont(NFont_Target* renderer, TTF_Font* ttf, const NFont::Color& color)
+{
+    init();
+    load(renderer, ttf, color);
+}
+NFont::NFont(NFont_Target* renderer, const char* filename_ttf, Uint32 pointSize)
+{
+    init();
+    load(renderer, filename_ttf, pointSize);
+}
+NFont::NFont(NFont_Target* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
+{
+    init();
+    load(renderer, filename_ttf, pointSize, color, style);
+}
+#endif
+
 #endif
 
 NFont::~NFont()
@@ -567,12 +637,19 @@ NFont::~NFont()
 
 NFont& NFont::operator=(const NFont& font)
 {
+    #ifndef NFONTR
     load(copySurface(font.srcSurface));
+    #else
+    load(font.renderer, copySurface(font.srcSurface));
+    #endif
     return *this;
 }
 
 void NFont::init()
 {
+    #ifdef NFONTR
+    renderer = NULL;
+    #endif
     ttf_source = NULL;
     owns_ttf_source = false;
     src = NULL;
@@ -602,38 +679,28 @@ void NFont::init()
 }
 
 
-static void makeColorTransparent(GPU_Image* image, SDL_Color color)
-{
-    SDL_Surface* surface = GPU_CopySurfaceFromImage(image);
-    Uint8* pixels = (Uint8*)surface->pixels;
-    
-    int x,y,i;
-    for(y = 0; y < surface->h; y++)
-    {
-        for(x = 0; x < surface->w; x++)
-        {
-            i = y*surface->pitch + x*surface->format->BytesPerPixel;
-            if(pixels[i] == color.r && pixels[i+1] == color.g && pixels[i+2] == color.b)
-                pixels[i+3] = 0;
-        }
-    }
-    
-    GPU_UpdateImage(image, surface, NULL);
-    SDL_FreeSurface(surface);
-}
 
 // Loading
+#ifndef NFONTR
 bool NFont::load(SDL_Surface* FontSurface)
+#else
+bool NFont::load(NFont_Target* renderer, SDL_Surface* FontSurface)
+#endif
 {
     free();
 
     srcSurface = FontSurface;
     if(srcSurface == NULL)
     {
-        GPU_LogError("\n ERROR: NFont given a NULL surface\n");
+        NFont_Log("\n ERROR: NFont given a NULL surface\n");
         return false;
     }
 
+    #ifdef NFONTR
+    this->renderer = renderer;
+    if(renderer == NULL)
+        return false;
+    #endif
 
     int x = 1, i = 0;
     
@@ -776,11 +843,15 @@ bool NFont::load(SDL_Surface* FontSurface)
     }
     
     
+    SDL_SetColorKey(dest, SDL_TRUE, SDL_MapRGBA(dest->format, 255, 0, 255, 255));
+    #ifndef NFONTR
     src = GPU_CopyImageFromSurface(dest);
     GPU_SetImageFilter(src, GPU_FILTER_NEAREST);
+    #else
+    src = SDL_CreateTextureFromSurface(renderer, dest);
+    #endif
+
     SDL_FreeSurface(dest);
-    SDL_Color pink = {255, 0, 255, 255};
-    makeColorTransparent(src, pink);
 
     SDL_SetSurfaceBlendMode(srcSurface, blendMode);
     return true;
@@ -796,7 +867,7 @@ bool NFont::addGlyph(Uint32 codepoint, Uint16 width, Uint16 maxWidth, Uint16 max
         if(lastGlyph.y + height + height >= maxHeight)
         {
             // Ran out of room on texture
-            GPU_LogError("Error: NFont ran out of packing space for glyphs!\n");
+            NFont_Log("Error: NFont ran out of packing space for glyphs!\n");
             return false;
         }
         
@@ -814,18 +885,35 @@ bool NFont::addGlyph(Uint32 codepoint, Uint16 width, Uint16 maxWidth, Uint16 max
     return true;
 }
 
-
+#ifndef NFONTR
 bool NFont::load(TTF_Font* ttf)
+#else
+bool NFont::load(NFont_Target* renderer, TTF_Font* ttf)
+#endif
 {
+    #ifndef NFONTR
     return load(ttf, default_color);
+    #else
+    return load(renderer, ttf, default_color);
+    #endif
 }
 
+#ifndef NFONTR
 bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
+#else
+bool NFont::load(NFont_Target* renderer, TTF_Font* ttf, const NFont::Color& color)
+#endif
 {
     free();
 
     if(ttf == NULL)
         return false;
+    
+    #ifdef NFONTR
+    this->renderer = renderer;
+    if(renderer == NULL)
+        return false;
+    #endif
     
     ttf_source = ttf;
     
@@ -872,24 +960,54 @@ bool NFont::load(TTF_Font* ttf, const NFont::Color& color)
         SDL_FreeSurface(surf);
     }
     
+    #ifndef NFONTR
     src = GPU_CopyImageFromSurface(dest);
     GPU_SetImageFilter(src, GPU_FILTER_NEAREST);
+    #else
+    src = SDL_CreateTexture(renderer, dest->format->format, SDL_TEXTUREACCESS_TARGET, dest->w, dest->h);
+    SDL_SetTextureBlendMode(src, SDL_BLENDMODE_BLEND);
+    
+    SDL_Texture* temp = SDL_CreateTextureFromSurface(renderer, dest);
+    SDL_SetRenderTarget(renderer, src);
+    
+    Uint8 r, g, b, a;
+    SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    
+    SDL_RenderCopy(renderer, temp, NULL, NULL);
+    SDL_SetRenderTarget(renderer, NULL);
+    
+    SDL_DestroyTexture(temp);
+    #endif
     SDL_FreeSurface(dest);
     
     return true;
 }
 
-
+#ifndef NFONTR
 bool NFont::load(const char* filename_ttf, Uint32 pointSize)
+#else
+bool NFont::load(NFont_Target* renderer, const char* filename_ttf, Uint32 pointSize)
+#endif
 {
+    #ifndef NFONTR
     return load(filename_ttf, pointSize, default_color);
+    #else
+    return load(renderer, filename_ttf, pointSize, default_color);
+    #endif
 }
 
+#ifndef NFONTR
 bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
+#else
+bool NFont::load(NFont_Target* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
+#endif
 {
     if(!TTF_WasInit() && TTF_Init() < 0)
     {
-        GPU_LogError("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
+        NFont_Log("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
         return false;
     }
 
@@ -897,7 +1015,7 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color&
 
     if(ttf == NULL)
     {
-        GPU_LogError("Unable to load TrueType font: %s \n", TTF_GetError());
+        NFont_Log("Unable to load TrueType font: %s \n", TTF_GetError());
         return false;
     }
     
@@ -909,7 +1027,13 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color&
         TTF_SetFontOutline(ttf, 1);
     }
     TTF_SetFontStyle(ttf, style);
+
+    #ifndef NFONTR
     bool result = load(ttf, color);
+    #else
+    bool result = load(renderer, ttf, color);
+    #endif
+
     owns_ttf_source = true;
     return result;
 }
@@ -924,7 +1048,13 @@ void NFont::free()
         ttf_source = NULL;
     }
     SDL_FreeSurface(srcSurface);
+
+    #ifndef NFONTR
     GPU_FreeImage(src);
+    #else
+    SDL_DestroyTexture(src);
+    renderer = NULL;
+    #endif
 
     srcSurface = NULL;
     src = NULL;
@@ -940,7 +1070,6 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         if(ttf_source == NULL)
             return false;
         
-        GPU_Target* dest = GPU_LoadTarget(src);
         char buff[5];
         getUTF8FromCodepoint(buff, codepoint);
         
@@ -949,13 +1078,24 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         if(surf == NULL)
             return false;
         
-        if(!addGlyph(codepoint, surf->w, dest->w, dest->h))
+        int w, h;
+        #ifndef NFONTR
+        GPU_Target* dest = GPU_LoadTarget(src);
+        w = dest->w;
+        h = dest->h;
+        #else
+        SDL_QueryTexture(src, NULL, NULL, &w, &h);
+        #endif
+
+        if(!addGlyph(codepoint, surf->w, w, h))
         {
             SDL_FreeSurface(surf);
             return false;
         }
         
         SDL_SetSurfaceBlendMode(surf, SDL_BLENDMODE_NONE);
+
+        #ifndef NFONTR
         GPU_Image* img = GPU_CopyImageFromSurface(surf);
         GPU_SetImageFilter(img, GPU_FILTER_NEAREST);
         SDL_FreeSurface(surf);
@@ -965,17 +1105,27 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         GPU_FreeImage(img);
         
         GPU_FreeTarget(dest);
+        #else
+        SDL_Texture* img = SDL_CreateTextureFromSurface(renderer, surf);
+        SDL_FreeSurface(surf);
+        
+        SDL_Rect destrect = lastGlyph;
+        SDL_SetRenderTarget(renderer, src);
+        SDL_RenderCopy(renderer, img, NULL, &destrect);
+        SDL_SetRenderTarget(renderer, NULL);
+        SDL_DestroyTexture(img);
+        #endif
     }
     *result = e->second;
     return true;
 }
 
 // Drawing
-GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
+NFont::Rectf NFont::render_left(NFont_Target* dest, float x, float y, const Scale& scale, const char* text)
 {
     const char* c = text;
     Rectf srcRect, dstRect, copyS, copyD;
-    data.dirtyRect = GPU_MakeRect(x, y, 0, 0);
+    data.dirtyRect = Rectf(x, y, 0, 0);
 
     if(c == NULL || src == NULL || dest == NULL)
         return data.dirtyRect;
@@ -1020,19 +1170,14 @@ GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const Scale& sca
             continue;
         if(destY >= dest->h)
             continue;*/
-
+        
+        Rectf sr = glyph.rect;
         float destW = glyph.rect.w*scale.x;
-        copyS = glyph.rect;
-        copyD = dstRect;
-        //SDL_BlitSurface(src, &srcRect, dest, &dstRect);
-        GPU_Rect sr = copyS.to_GPU_Rect();
         dstRect = scaleAndBlit(src, &sr, dest, destX, destY, scale.x, scale.y);
         if(data.dirtyRect.w == 0 || data.dirtyRect.h == 0)
-            data.dirtyRect = dstRect.to_GPU_Rect();
+            data.dirtyRect = dstRect;
         else
-            data.dirtyRect = rectUnion(data.dirtyRect, dstRect.to_GPU_Rect());
-        //srcRect = copyS;
-        //dstRect = copyD;
+            data.dirtyRect = rectUnion(data.dirtyRect, dstRect);
 
         destX += destW + destLetterSpacing;
     }
@@ -1040,17 +1185,17 @@ GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const Scale& sca
     return data.dirtyRect;
 }
 
-GPU_Rect NFont::render_left(GPU_Target* dest, float x, float y, const char* text)
+NFont::Rectf NFont::render_left(NFont_Target* dest, float x, float y, const char* text)
 {
     return render_left(dest, x, y, Scale(1.0f), text);
 }
 
-GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align)
+NFont::Rectf NFont::render_animated(NFont_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align)
 {
     const char* c = buffer;
     Scale scale;
     Rectf srcRect, dstRect, copyS, copyD;
-    data.dirtyRect = GPU_MakeRect(x, y, 0, 0);
+    data.dirtyRect = Rectf(x, y, 0, 0);
 
     if(c == NULL || src == NULL || dest == NULL)
         return data.dirtyRect;
@@ -1074,7 +1219,7 @@ GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont:
     //data.charPos = charPos;
     //data.charWidth = charWidth;
     //data.maxX = maxPos;
-    data.dirtyRect = GPU_MakeRect(x,y,0,0);
+    data.dirtyRect = Rectf(x,y,0,0);
 
     data.index = -1;
     data.letterNum = 0;
@@ -1133,15 +1278,13 @@ GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont:
         dstRect.y = y;
         
         float destW = glyph.rect.w*scale.x;
-        copyS = glyph.rect;
-        copyD = dstRect;
         
-        GPU_Rect sr = copyS.to_GPU_Rect();
+        Rectf sr = glyph.rect;
         dstRect = scaleAndBlit(src, &sr, dest, dstRect.x + srcRect.w/2, dstRect.y + srcRect.h/2, scale.x, scale.y);
         if(data.dirtyRect.w == 0 || data.dirtyRect.h == 0)
-            data.dirtyRect = dstRect.to_GPU_Rect();
+            data.dirtyRect = dstRect;
         else
-            data.dirtyRect = rectUnion(data.dirtyRect, dstRect.to_GPU_Rect());
+            data.dirtyRect = rectUnion(data.dirtyRect, dstRect);
         
         x = preFnX;  // Restore real position
         y = preFnY;
@@ -1152,18 +1295,27 @@ GPU_Rect NFont::render_animated(GPU_Target* dest, float x, float y, const NFont:
     return data.dirtyRect;
 }
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const char* formatted_text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return render_left(dest, x, y, buffer);
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    Rectf result = render_left(dest, x, y, buffer);
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    return result;
+    #endif
 }
 
 /*static int getIndexPastWidth(const char* text, int width, const int* charWidth)
@@ -1210,23 +1362,35 @@ static list<string> explode(const string& str, char delimiter)
     return result;
 }
 
-GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...)
+NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(box.x, box.y, 0, 0);
+        return Rectf(box.x, box.y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
     bool useClip = dest->use_clip_rect;
-    GPU_Rect oldclip, newclip;
+    Rectf oldclip, newclip;
     oldclip = dest->clip_rect;
-    newclip = rectIntersect(oldclip, box.to_GPU_Rect());
-    GPU_SetClipRect(dest, newclip);
+    newclip = rectIntersect(oldclip, box);
+    GPU_SetClipRect(dest, newclip.to_GPU_Rect());
     
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
+    #else
+    SDL_Rect oldclip;
+    Rectf newclip;
+    //SDL_RenderGetClipRect(dest, &oldclip);
+    newclip = rectIntersect(oldclip, box);
+    SDL_Rect r = newclip.to_SDL_Rect();
+    //SDL_RenderSetClipRect(dest, &r);
+    
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    #endif
 
     int y = box.y;
 
@@ -1262,31 +1426,53 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, const char* formatte
         render_left(dest, box.x, y, line.c_str());
         y += getHeight();
     }
+    
+    #ifndef NFONTR
     if(useClip)
-        GPU_SetClipRect(dest, oldclip);
+        GPU_SetClipRect(dest, oldclip.to_GPU_Rect());
     else
         GPU_UnsetClip(dest);
+    #else
+    r = oldclip;
+    //SDL_RenderSetClipRect(dest, &r);
 
-    return box.to_GPU_Rect();
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
+
+    return box;
 }
 
-GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...)
+NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(box.x, box.y, 0, 0);
+        return Rectf(box.x, box.y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
+
     bool useClip = dest->use_clip_rect;
-    GPU_Rect oldclip, newclip;
+    Rectf oldclip, newclip;
     oldclip = dest->clip_rect;
-    newclip = rectIntersect(oldclip, box.to_GPU_Rect());
-    GPU_SetClipRect(dest, newclip);
+    newclip = rectIntersect(oldclip, box);
+    GPU_SetClipRect(dest, newclip.to_GPU_Rect());
     
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
+    #else
+    SDL_Rect oldclip;
+    Rectf newclip;
+    //SDL_RenderGetClipRect(dest, &oldclip);
+    newclip = rectIntersect(oldclip, box);
+    SDL_Rect r = newclip.to_SDL_Rect();
+    //SDL_RenderSetClipRect(dest, &r);
+    
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    #endif
 
     int y = box.y;
 
@@ -1345,25 +1531,38 @@ GPU_Rect NFont::drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, con
         y += getHeight();
     }
 
+    #ifndef NFONTR
     if(useClip)
-        GPU_SetClipRect(dest, oldclip);
+        GPU_SetClipRect(dest, oldclip.to_GPU_Rect());
     else
         GPU_UnsetClip(dest);
+    #else
+    r = oldclip;
+    //SDL_RenderSetClipRect(dest, &r);
+    
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
 
-    return box.to_GPU_Rect();
+    return box;
 }
 
-GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...)
+NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
     
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    #endif
 
     int y0 = y;
 
@@ -1399,21 +1598,31 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, con
         render_left(dest, x, y, line.c_str());
         y += getHeight();
     }
+    
+    #ifdef NFONTR
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
 
-    return GPU_MakeRect(x, y0, width, y-y0);
+    return Rectf(x, y0, width, y-y0);
 }
 
-GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...)
+NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
     
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    #endif
 
     int y0 = y;
 
@@ -1471,16 +1680,21 @@ GPU_Rect NFont::drawColumn(GPU_Target* dest, float x, float y, Uint16 width, Ali
         }
         y += getHeight();
     }
+    
+    #ifdef NFONTR
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
 
-    return GPU_MakeRect(x, y0, width, y-y0);
+    return Rectf(x, y0, width, y-y0);
 }
 
-GPU_Rect NFont::render_center(GPU_Target* dest, float x, float y, const char* text)
+NFont::Rectf NFont::render_center(NFont_Target* dest, float x, float y, const char* text)
 {
     if(text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
-    GPU_Rect result = GPU_MakeRect(x,y,0,0);
+    Rectf result(x,y,0,0);
     char* str = copyString(text);
     char* del = str;
 
@@ -1507,12 +1721,12 @@ GPU_Rect NFont::render_center(GPU_Target* dest, float x, float y, const char* te
     return result;
 }
 
-GPU_Rect NFont::render_right(GPU_Target* dest, float x, float y, const char* text)
+NFont::Rectf NFont::render_right(NFont_Target* dest, float x, float y, const char* text)
 {
     if(text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
-    GPU_Rect result = GPU_MakeRect(x,y,0,0);
+    Rectf result(x,y,0,0);
     char* str = copyString(text);
     char* del = str;
 
@@ -1537,12 +1751,12 @@ GPU_Rect NFont::render_right(GPU_Target* dest, float x, float y, const char* tex
     return result;
 }
 
-GPU_Rect NFont::render_center(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
+NFont::Rectf NFont::render_center(NFont_Target* dest, float x, float y, const Scale& scale, const char* text)
 {
     if(text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
-    GPU_Rect result = GPU_MakeRect(x,y,0,0);
+    Rectf result(x,y,0,0);
     char* str = copyString(text);
     char* del = str;
 
@@ -1569,12 +1783,12 @@ GPU_Rect NFont::render_center(GPU_Target* dest, float x, float y, const Scale& s
     return result;
 }
 
-GPU_Rect NFont::render_right(GPU_Target* dest, float x, float y, const Scale& scale, const char* text)
+NFont::Rectf NFont::render_right(NFont_Target* dest, float x, float y, const Scale& scale, const char* text)
 {
     if(text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
-    GPU_Rect result = GPU_MakeRect(x,y,0,0);
+    Rectf result(x,y,0,0);
     char* str = copyString(text);
     char* del = str;
 
@@ -1601,78 +1815,131 @@ GPU_Rect NFont::render_right(GPU_Target* dest, float x, float y, const Scale& sc
 
 
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return render_left(dest, x, y, scale, buffer);
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    
+    Rectf result = render_left(dest, x, y, scale, buffer);
+    
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    
+    return result;
+    #endif
 }
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
     
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
-
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    #endif
+    
+    Rectf result;
     switch(align)
     {
         case LEFT:
-            return render_left(dest, x, y, buffer);
+            result = render_left(dest, x, y, buffer);
+            break;
         case CENTER:
-            return render_center(dest, x, y, buffer);
+            result = render_center(dest, x, y, buffer);
+            break;
         case RIGHT:
-            return render_right(dest, x, y, buffer);
+            result = render_right(dest, x, y, buffer);
+            break;
+        default:
+            result = Rectf(x, y, 0, 0);
+            break;
     }
 
-    return GPU_MakeRect(x, y, 0, 0);
+    #ifdef NFONTR
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
+
+    return result;
 }
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
     GPU_SetRGBA(src, color.r, color.g, color.b, color.a);
-    GPU_Rect result = render_left(dest, x, y, buffer);
+    Rectf result = render_left(dest, x, y, buffer);
     GPU_SetRGBA(src, 255, 255, 255, 255);
+    #else
+    SDL_SetTextureColorMod(src, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(src, color.a);
+    
+    Rectf result = render_left(dest, x, y, buffer);
+    
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
+
     return result;
 }
 
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
-        return GPU_MakeRect(x, y, 0, 0);
+        return Rectf(x, y, 0, 0);
 
     va_list lst;
     va_start(lst, formatted_text);
     vsprintf(buffer, formatted_text, lst);
     va_end(lst);
     
+    #ifndef NFONTR
     if(effect.use_color)
         GPU_SetRGBA(src, effect.color.r, effect.color.g, effect.color.b, effect.color.a);
     else
         GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
+    #else
+    if(effect.use_color)
+    {
+        SDL_SetTextureColorMod(src, effect.color.r, effect.color.g, effect.color.b);
+        SDL_SetTextureAlphaMod(src, effect.color.a);
+    }
+    else
+    {
+        SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+        SDL_SetTextureAlphaMod(src, default_color.a);
+    }
+    #endif
     
-    GPU_Rect result;
+    Rectf result;
     switch(effect.alignment)
     {
         case LEFT:
@@ -1685,34 +1952,64 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const Effect& effect, c
             result = render_right(dest, x, y, effect.scale, buffer);
             break;
         default:
-            result = GPU_MakeRect(x, y, 0, 0);
+            result = Rectf(x, y, 0, 0);
             break;
     }
+    
+    #ifndef NFONTR
     GPU_SetRGBA(src, 255, 255, 255, 255);
+    #else
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    #endif
 
     return result;
 }
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, const char* text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, const char* text, ...)
 {
     va_list lst;
     va_start(lst, text);
     vsprintf(buffer, text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return render_animated(dest, x, y, params, posFn, NFont::LEFT);
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    
+    Rectf result = render_animated(dest, x, y, params, posFn, NFont::LEFT);
+    
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    
+    return result;
+    #endif
 }
 
-GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, AlignEnum align, const char* text, ...)
+NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, AlignEnum align, const char* text, ...)
 {
     va_list lst;
     va_start(lst, text);
     vsprintf(buffer, text, lst);
     va_end(lst);
 
+    #ifndef NFONTR
     GPU_SetRGBA(src, default_color.r, default_color.g, default_color.b, default_color.a);
     return render_animated(dest, x, y, params, posFn, align);
+    #else
+    SDL_SetTextureColorMod(src, default_color.r, default_color.g, default_color.b);
+    SDL_SetTextureAlphaMod(src, default_color.a);
+    
+    Rectf result = render_animated(dest, x, y, params, posFn, align);
+    
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureAlphaMod(src, 255);
+    
+    return result;
+    #endif
 }
 
 
@@ -1720,7 +2017,7 @@ GPU_Rect NFont::draw(GPU_Target* dest, float x, float y, const NFont::AnimParams
 
 // Getters
 
-GPU_Image* NFont::getImage() const
+NFont_Image* NFont::getImage() const
 {
     return src;
 }

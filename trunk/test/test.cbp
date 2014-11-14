@@ -14,9 +14,9 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
-					<Add directory="../../../externals/SDL2/include/SDL2" />
-					<Add directory="../../../externals/SDL_ttf/include" />
-					<Add directory="../../../externals/SDL_gpu/include" />
+					<Add directory="../../externals/SDL2/include/SDL2" />
+					<Add directory="../../externals/SDL_ttf/include" />
+					<Add directory="../../externals/SDL_gpu/include" />
 				</Compiler>
 				<Linker>
 					<Add option="-mwindows" />
@@ -26,9 +26,9 @@
 					<Add library="SDL2" />
 					<Add library="SDL2_ttf" />
 					<Add library="OpenGL32" />
-					<Add directory="../../../externals/SDL2/lib_windows" />
-					<Add directory="../../../externals/SDL_ttf/lib_windows" />
-					<Add directory="../../../externals/SDL_gpu/lib_windows" />
+					<Add directory="../../externals/SDL2/lib_windows" />
+					<Add directory="../../externals/SDL_ttf/lib_windows" />
+					<Add directory="../../externals/SDL_gpu/lib_windows" />
 				</Linker>
 			</Target>
 		</Build>
@@ -37,8 +37,9 @@
 			<Add option="-fexceptions" />
 			<Add option="-DNFONT_USE_TTF" />
 		</Compiler>
-		<Unit filename="../NFont.cpp" />
-		<Unit filename="../NFont.h" />
+		<Unit filename="../NFontR/NFont.h" />
+		<Unit filename="../NFont/NFont.cpp" />
+		<Unit filename="../NFont/NFont.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

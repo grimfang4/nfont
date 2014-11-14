@@ -226,7 +226,7 @@ class NFont
         
         void* userVar;
         
-        GPU_Rect dirtyRect;
+        Rectf dirtyRect;
     };
     
     class AnimParams
@@ -305,18 +305,18 @@ class NFont
     void free();
 
     // Drawing
-    GPU_Rect draw(GPU_Target* dest, float x, float y, const char* formatted_text, ...);
-    GPU_Rect draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
-    GPU_Rect draw(GPU_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...);
-    GPU_Rect draw(GPU_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...);
-    GPU_Rect draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...);
-    GPU_Rect draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...);
-    GPU_Rect draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, const char* formatted_text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...);
+    Rectf draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...);
     
-    GPU_Rect drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...);
-    GPU_Rect drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
-    GPU_Rect drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
-    GPU_Rect drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...);
+    Rectf drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
+    Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
     
     // Getters
     GPU_Image* getImage() const;
@@ -349,6 +349,7 @@ class NFont
     
   private:
     
+    SDL_Renderer* renderer;
     TTF_Font* ttf_source;  // TTF_Font source of characters
     bool owns_ttf_source;  // Can we delete the TTF_Font ourselves?
     SDL_Surface* srcSurface;  // bitmap source of characters
@@ -378,19 +379,19 @@ class NFont
     
     void init();  // Common constructor
 
-    GPU_Rect render_animated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align);
+    Rectf render_animated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align);
     
     // Static variables
     static char* buffer;  // Shared buffer for efficient drawing
     static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
                                  // the function pointers for animation
     
-    GPU_Rect render_left(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    GPU_Rect render_left(GPU_Target* dest, float x, float y, const char* text);
-    GPU_Rect render_center(GPU_Target* dest, float x, float y, const char* text);
-    GPU_Rect render_center(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    GPU_Rect render_right(GPU_Target* dest, float x, float y, const char* text);
-    GPU_Rect render_right(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    Rectf render_left(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    Rectf render_left(GPU_Target* dest, float x, float y, const char* text);
+    Rectf render_center(GPU_Target* dest, float x, float y, const char* text);
+    Rectf render_center(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
+    Rectf render_right(GPU_Target* dest, float x, float y, const char* text);
+    Rectf render_right(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
     
 };
 
