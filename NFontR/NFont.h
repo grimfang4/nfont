@@ -3,25 +3,6 @@ NFontR v4.0.0: A font class for SDL and SDL_Renderer
 by Jonathan Dearborn
 Dedicated to the memory of Florian Hufsky
 
-Requires:
-    SDL ("SDL.h") [www.libsdl.org]
-    SDL_ttf ("SDL_ttf.h") [www.libsdl.org]
-
-Notes:
-    NFont is a font class with text-block alignment, full
-    support for the newline character ('\n'), position animation,
-    and UTF-8 support.
-    
-    NFont natively loads SFont bitmaps and TrueType fonts with SDL_ttf.  The 
-    standard bitmaps have the following characters (ASCII 33-126) separated by 
-    pink (255, 0, 255) pixels in the topmost row:
-    ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
-    
-    Define NFONT_NO_TTF before including NFont.h to disable TrueType fonts.
-
-    If you come up with something cool using NFont, I'd love to hear about it.
-    Any comments can be sent to GrimFang4 [at] gmail [dot] com
-
 License:
     The short:
     Use it however you'd like, but keep the copyright and license notice 
