@@ -648,8 +648,11 @@ void NFont::init()
     #ifdef NFONTR
     renderer = NULL;
     #endif
+    
+    #ifndef NFONT_NO_TTF
     ttf_source = NULL;
     owns_ttf_source = false;
+    #endif
     src = NULL;
     srcSurface = NULL;
     
@@ -1040,11 +1043,13 @@ bool NFont::load(NFont_Target* renderer, const char* filename_ttf, Uint32 pointS
 
 void NFont::free()
 {
+    #ifndef NFONT_NO_TTF
     if(owns_ttf_source)
     {
         TTF_CloseFont(ttf_source);
         ttf_source = NULL;
     }
+    #endif
     SDL_FreeSurface(srcSurface);
 
     #ifndef NFONTR
@@ -1065,6 +1070,7 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
     std::map<Uint32, GlyphData>::const_iterator e = glyphs.find(codepoint);
     if(e == glyphs.end() || result == NULL)
     {
+        #ifndef NFONT_NO_TTF
         if(ttf_source == NULL)
             return false;
         
@@ -1112,6 +1118,10 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         SDL_RenderCopy(renderer, img, NULL, &destrect);
         SDL_SetRenderTarget(renderer, NULL);
         SDL_DestroyTexture(img);
+        #endif
+        
+        #else
+        return false;
         #endif
     }
     *result = e->second;
@@ -2460,10 +2470,12 @@ void NFont::setDefaultColor(const Color& color)
     default_color = color;
 }
 
+#ifndef NFONT_NO_TTF
 void NFont::enableTTFOwnership()
 {
     owns_ttf_source = true;
 }
+#endif
 
 
 
