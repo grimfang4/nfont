@@ -319,13 +319,18 @@ class NFont
     void setBaseline();
     void setBaseline(Uint16 Baseline);
     void setDefaultColor(const Color& color);
+    
+    #ifndef NFONT_NO_TTF
     void enableTTFOwnership();
+    #endif
     
   private:
     
     SDL_Renderer* renderer;
+    #ifndef NFONT_NO_TTF
     TTF_Font* ttf_source;  // TTF_Font source of characters
     bool owns_ttf_source;  // Can we delete the TTF_Font ourselves?
+    #endif
     SDL_Surface* srcSurface;  // bitmap source of characters
     GPU_Image* src;  // bitmap source of characters
     

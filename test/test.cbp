@@ -50,7 +50,6 @@
 					<Add library="SDL2main" />
 					<Add library="SDL2" />
 					<Add library="SDL2_ttf" />
-					<Add library="OpenGL32" />
 					<Add directory="../../externals/SDL2/lib_windows" />
 					<Add directory="../../externals/SDL_ttf/lib_windows" />
 				</Linker>
