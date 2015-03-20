@@ -261,6 +261,7 @@ class NFont
         NFont(TTF_Font* ttf, const NFont::Color& color);
         NFont(const char* filename_ttf, Uint32 pointSize);
         NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+        NFont(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
 
     ~NFont();
@@ -274,6 +275,7 @@ class NFont
         bool load(TTF_Font* ttf, const NFont::Color& color);
         bool load(const char* filename_ttf, Uint32 pointSize);
         bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+        bool load(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
     
     void free();

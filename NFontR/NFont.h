@@ -260,6 +260,7 @@ class NFont
         NFont(SDL_Renderer* renderer, TTF_Font* ttf, const NFont::Color& color);
         NFont(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize);
         NFont(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+        NFont(SDL_Renderer* renderer, SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
 
     ~NFont();
@@ -273,6 +274,7 @@ class NFont
         bool load(SDL_Renderer* renderer, TTF_Font* ttf, const NFont::Color& color);
         bool load(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize);
         bool load(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+        bool load(SDL_Renderer* renderer, SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
     
     void free();
