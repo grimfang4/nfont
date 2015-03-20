@@ -37,6 +37,7 @@ THE SOFTWARE.
 #endif
 
 #include <cmath>
+#include <cstdio>
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
 #endif
@@ -600,6 +601,11 @@ NFont::NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& col
     init();
     load(filename_ttf, pointSize, color, style);
 }
+NFont::NFont(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style)
+{
+    init();
+    load(file_rwops_ttf, own_rwops, pointSize, color, style);
+}
 
 #else
 
@@ -622,6 +628,11 @@ NFont::NFont(NFont_Target* renderer, const char* filename_ttf, Uint32 pointSize,
 {
     init();
     load(renderer, filename_ttf, pointSize, color, style);
+}
+NFont::NFont(NFont_Target* renderer, SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style)
+{
+    init();
+    load(renderer, file_rwops_ttf, own_rwops, pointSize, color, style);
 }
 #endif
 
@@ -1006,17 +1017,36 @@ bool NFont::load(const char* filename_ttf, Uint32 pointSize, const NFont::Color&
 bool NFont::load(NFont_Target* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style)
 #endif
 {
+    SDL_RWops* rwops = SDL_RWFromFile(filename_ttf, "rb");
+    #ifndef NFONTR
+    bool result = load(rwops, 1, pointSize, color, style);
+    #else
+    bool result = load(renderer, rwops, 1, pointSize, color, style);
+    #endif
+    return result;
+}
+
+#ifndef NFONTR
+bool NFont::load(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style)
+#else
+bool NFont::load(NFont_Target* renderer, SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style)
+#endif
+{
     if(!TTF_WasInit() && TTF_Init() < 0)
     {
         NFont_Log("Unable to initialize SDL_ttf: %s \n", TTF_GetError());
+        if(own_rwops)
+            SDL_RWclose(file_rwops_ttf);
         return false;
     }
 
-    TTF_Font* ttf = TTF_OpenFont(filename_ttf, pointSize);
+    TTF_Font* ttf = TTF_OpenFontRW(file_rwops_ttf, own_rwops, pointSize);
 
     if(ttf == NULL)
     {
         NFont_Log("Unable to load TrueType font: %s \n", TTF_GetError());
+        if(own_rwops)
+            SDL_RWclose(file_rwops_ttf);
         return false;
     }
     
@@ -1034,8 +1064,15 @@ bool NFont::load(NFont_Target* renderer, const char* filename_ttf, Uint32 pointS
     #else
     bool result = load(renderer, ttf, color);
     #endif
-
-    owns_ttf_source = true;
+    
+    // Can only load new (uncached) glyphs if we can keep the SDL_RWops open.
+    owns_ttf_source = own_rwops;
+    if(!own_rwops)
+    {
+        TTF_CloseFont(ttf_source);
+        ttf_source = NULL;
+    }
+    
     return result;
 }
 
@@ -1077,23 +1114,32 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         char buff[5];
         getUTF8FromCodepoint(buff, codepoint);
         
-        SDL_Color white = {255, 255, 255, 255};
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(ttf_source, buff, white);
-        if(surf == NULL)
-            return false;
-        
         int w, h;
         #ifndef NFONTR
         GPU_Target* dest = GPU_LoadTarget(src);
+        if(dest == NULL)
+        {
+            GPU_LogError("NFont: Failed to load target, so cannot add new glyphs!\n");
+            return false;
+        }
         w = dest->w;
         h = dest->h;
         #else
         SDL_QueryTexture(src, NULL, NULL, &w, &h);
         #endif
+        
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(ttf_source, buff, white);
+        if(surf == NULL)
+        {
+            GPU_FreeTarget(dest);
+            return false;
+        }
 
         if(!addGlyph(codepoint, surf->w, w, h))
         {
             SDL_FreeSurface(surf);
+            GPU_FreeTarget(dest);
             return false;
         }
         
