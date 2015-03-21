@@ -1132,14 +1132,18 @@ bool NFont::getGlyphData(NFont::GlyphData* result, Uint32 codepoint)
         SDL_Surface* surf = TTF_RenderUTF8_Blended(ttf_source, buff, white);
         if(surf == NULL)
         {
+            #ifndef NFONTR
             GPU_FreeTarget(dest);
+            #endif
             return false;
         }
 
         if(!addGlyph(codepoint, surf->w, w, h))
         {
             SDL_FreeSurface(surf);
+            #ifndef NFONTR
             GPU_FreeTarget(dest);
+            #endif
             return false;
         }
         
