@@ -4,9 +4,24 @@ by Jonathan Dearborn
 Dedicated to the memory of Florian Hufsky
 
 
+NFont is a C++ library that makes it easy to add bitmap or TrueType fonts to your programs.  Using SDL_gpu or SDL_Renderer, NFont can load and display bitmap text.  Using SDL_ttf, you can load TrueType font files.
+
+Cool features:
+ * Multiline (\n) rendering
+ * Text alignment (left, center, right)
+ * Boxed drawing
+ * Text position animations
+ * Unicode (UTF-8) support
+ * Coloring and scaling
+ * Permissive license
+
+
+
 Requires:
     SDL ("SDL.h") [www.libsdl.org]
-    SDL_gpu ("SDL_gpu.h") [code.google.com/p/sdl-gpu] - Not required by NFontR
+    
+Optional (though recommended!):
+    SDL_gpu ("SDL_gpu.h") [https://github.com/grimfang4/sdl-gpu] - Not required by NFontR, see below
     SDL_ttf ("SDL_ttf.h") [www.libsdl.org] - Can be disabled, see below
 
 Notes:
