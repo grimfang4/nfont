@@ -1,6 +1,6 @@
 NFont v4.0.0: A font class for SDL
 by Jonathan Dearborn
-[code.google.com/p/nfont]
+[https://github.com/grimfang4/nfont]
 Dedicated to the memory of Florian Hufsky
 
 
