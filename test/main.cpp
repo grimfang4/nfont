@@ -1,14 +1,10 @@
 #include "SDL.h"
 
-// Which rendering API?  NFont uses SDL_gpu.  NFontR uses SDL_Renderer.
-#ifdef NFONT_USE_NFONTR
-    #include "../NFontR/NFont.h"
-#else
-    #include "../NFont/NFont.h"
-#endif
+#include "../NFont/NFont.h"
 
 #include <cmath>
 #include <string>
+#include <cstdio>
 
 // UTF-8 Sample from http://www.columbia.edu/~fdc/utf8/
 
@@ -94,8 +90,9 @@ void loop_drawSomeText()
     NFont font2(renderer, "fonts/FreeSans.ttf", 18, NFont::Color(0,200,0,255));
     NFont font3(renderer, "fonts/FreeSans.ttf", 22, NFont::Color(0,0,200,255));
     #endif
-    
     std::string utf8_string = get_string_from_file("utf8_sample.txt");
+    std::string input_text = "Edit this text.";
+    int input_position = U8_strlen(input_text.c_str());
     
     float target_w, target_h;
     #ifdef SDL_GPU_VERSION_MAJOR
@@ -125,7 +122,9 @@ void loop_drawSomeText()
     
     int scroll = 0;
     
-    Uint8* keystates = SDL_GetKeyboardState(NULL);
+    const Uint8* keystates = SDL_GetKeyboardState(NULL);
+    
+    SDL_StartTextInput();
     
     bool done = false;
 	SDL_Event event;
@@ -139,6 +138,39 @@ void loop_drawSomeText()
 	        {
 	            if(event.key.keysym.sym == SDLK_ESCAPE)
                     done = true;
+	            if(event.key.keysym.sym == SDLK_BACKSPACE)
+                {
+                    char* t = U8_strdup(input_text.c_str());
+                    U8_strdel(t, input_position-1);
+                    input_text = t;
+                    U8_free(t);
+                    --input_position;
+                    if(input_position < 0)
+                        input_position = 0;
+                }
+	            else if(event.key.keysym.sym == SDLK_RETURN)
+                {
+                    input_text += "\n";
+                    input_position++;
+                }
+	            else if(event.key.keysym.sym == SDLK_LEFT)
+                {
+                    --input_position;
+                    if(input_position < 0)
+                        input_position = 0;
+                }
+	            else if(event.key.keysym.sym == SDLK_RIGHT)
+                {
+                    ++input_position;
+                    int len = U8_strlen(input_text.c_str());
+                    if(input_position >= len)
+                        input_position = len;
+                }
+	        }
+	        else if(event.type == SDL_TEXTINPUT)
+	        {
+	            input_text += event.text.text;
+	            input_position += U8_strlen(event.text.text);
 	        }
 	    }
 	    
@@ -150,6 +182,7 @@ void loop_drawSomeText()
 	    fill_rect(leftHalf, white);
 	    fill_rect(rightHalf, gray);
 	    
+	    font.draw(target, 0, 0, NFont::Scale(0.85f), "UTF-8 text: %s", utf8_string.c_str());
 	    
 	    font.draw(target, rightHalf.x, 5, NFont::LEFT, "draw align LEFT");
 	    font.draw(target, rightHalf.x, 25, NFont::CENTER, "draw align CENTER");
@@ -158,9 +191,14 @@ void loop_drawSomeText()
 	    float time = SDL_GetTicks()/1000.0f;
 	    
 	    font.draw(target, rightHalf.x, 65, NFont::Color(128 + 127*sin(time), 128 + 127*sin(time/2), 128 + 127*sin(time/4), 128 + 127*sin(time/8)), "Dynamic colored text");
-	    font.draw(target, 0, 0, NFont::Scale(0.85f), "UTF-8 text: %s", utf8_string.c_str());
+	    font.draw(target, rightHalf.x, 85, "Multi\nline\ntext");
+	    font.draw(target, rightHalf.x, 175, "%s", input_text.c_str());
 	    
-	    font.draw(target, rightHalf.x, 90, NFont::AnimParams(time), &NFontAnim::bounce, NFont::RIGHT, "bounce align RIGHT");
+	    NFont::Rectf input_cursor_pos = font.getCharacterOffset(input_position, -1, "%s", input_text.c_str());
+	    if(SDL_GetTicks()%1000 < 500)
+            fill_rect(NFont::Rectf(rightHalf.x + input_cursor_pos.x, 175 + input_cursor_pos.y, input_cursor_pos.w, input_cursor_pos.h), NFont::Color().to_SDL_Color());
+	    
+	    /*font.draw(target, rightHalf.x, 90, NFont::AnimParams(time), &NFontAnim::bounce, NFont::RIGHT, "bounce align RIGHT");
 	    font2.draw(target, rightHalf.x, 120, NFont::AnimParams(time), &NFontAnim::bounce, NFont::CENTER, "bounce align CENTER");
 	    font3.draw(target, rightHalf.x, 150, NFont::AnimParams(time), &NFontAnim::bounce, "bounce align LEFT");
 	    
@@ -178,7 +216,7 @@ void loop_drawSomeText()
 	    
         font.draw(target, rightHalf.x, 490, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, NFont::RIGHT, "shake align RIGHT");
         font2.draw(target, rightHalf.x, 520, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, NFont::CENTER, "shake align CENTER");
-        font3.draw(target, rightHalf.x, 550, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, "shake align LEFT");
+        font3.draw(target, rightHalf.x, 550, NFont::AnimParams(time, 5, 9, 5, 7), &NFontAnim::shake, "shake align LEFT");*/
         
         font.drawColumn(target, 0, 50, 200, "column align LEFT\nColumn text wraps at the width of the column and has no maximum height.");
         font.drawColumn(target, 100, 250, 200, NFont::CENTER, "column align CENTER\nColumn text wraps at the width of the column and has no maximum height.");
@@ -211,6 +249,8 @@ void loop_drawSomeText()
 	    
 	    SDL_Delay(1);
 	}
+	
+	SDL_StopTextInput();
 	
 }
 

@@ -1,5 +1,5 @@
 /*
-NFont v4.0.0: A font class for SDL
+NFontR v4.0.0: A font class for SDL and SDL_Renderer
 by Jonathan Dearborn
 Dedicated to the memory of Florian Hufsky
 
@@ -30,17 +30,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef _NFONT_H__
-#define _NFONT_H__
+#ifndef _NFONTR_H__
+#define _NFONTR_H__
+
+#define NFONTR
 
 #include "SDL.h"
-#include "SDL_gpu.h"
-#include "stdarg.h"
-#include <map>
-#include <vector>
 
-#ifndef NFONT_NO_TTF
-    #include "SDL_ttf.h"
+#ifdef NFONT_USE_SDL_GPU
+    #include "SDL_gpu.h"
+#endif
+
+#include "SDL_FontCache.h"
+#include "stdarg.h"
+
+#if defined(NFONT_USE_SDL_GPU) ^ defined(FC_USE_SDL_GPU)
+#error NFont must be compiled to use the same backend as SDL_FontCache (define both NFONT_USE_SDL_GPU and FC_USE_SDL_GPU or else neither)
 #endif
 
 // Let's pretend this exists...
@@ -79,10 +84,13 @@ class NFont
         Rectf(float x, float y);
         Rectf(float x, float y, float w, float h);
         Rectf(const SDL_Rect& rect);
-        Rectf(const GPU_Rect& rect);
         
         SDL_Rect to_SDL_Rect() const;
+        
+        #ifdef NFONT_USE_SDL_GPU
+        Rectf(const GPU_Rect& rect);
         GPU_Rect to_GPU_Rect() const;
+        #endif
     };
 
     
@@ -151,157 +159,85 @@ class NFont
         {}
     };
     
-    class GlyphData
-    {
-    public:
-        SDL_Rect rect;
-        int cacheIndex;
-        
-        GlyphData()
-            : cacheIndex(0)
-        {
-            rect.x = 0;
-            rect.y = 0;
-            rect.w = 0;
-            rect.h = 0;
-        }
-        GlyphData(int cacheIndex, Sint16 x, Sint16 y, Uint16 w, Uint16 h)
-            : cacheIndex(cacheIndex)
-        {
-            rect.x = x;
-            rect.y = y;
-            rect.w = w;
-            rect.h = h;
-        }
-        GlyphData(int cacheIndex, const SDL_Rect& rect)
-            : rect(rect), cacheIndex(cacheIndex)
-        {}
-    };
-    
-    struct AnimData
-    {
-        NFont* font;
-        
-        GPU_Target* dest;
-        GPU_Image* src;
-        char* text;  // Buffer for efficient drawing
-        const int* charPos;
-        const Uint16* charWidth;
-        float maxX;
-        
-        int index;
-        int letterNum;
-        int wordNum;
-        int lineNum;
-        float startX;
-        float startY;
-        
-        NFont::AlignEnum align;
-        
-        void* userVar;
-        
-        Rectf dirtyRect;
-    };
-    
-    class AnimParams
-    {
-        public:
-        
-        float t;
-        float amplitudeX;
-        float amplitudeY;
-        float frequencyX;
-        float frequencyY;
-        
-        AnimParams()
-            : t(0.0f), amplitudeX(20.0f), amplitudeY(20.0f), frequencyX(1.0f), frequencyY(1.0f)
-        {}
-        AnimParams(float t)
-            : t(t), amplitudeX(20.0f), amplitudeY(20.0f), frequencyX(1.0f), frequencyY(1.0f)
-        {}
-        AnimParams(float t, float amplitude, float frequency)
-            : t(t), amplitudeX(amplitude), amplitudeY(20.0f), frequencyX(frequency), frequencyY(1.0f)
-        {}
-        AnimParams(float t, float amplitudeX, float frequencyX, float amplitudeY, float frequencyY)
-            : t(t), amplitudeX(amplitudeX), amplitudeY(amplitudeY), frequencyX(frequencyX), frequencyY(frequencyY)
-        {}
-    };
-    
-    // Function pointer
-    typedef void (*AnimFn)(float&, float&, const AnimParams&, AnimData&);
-    
-    
-    
-    // Static functions
-    
-    /*!
-    Returns the Uint32 codepoint parsed from the given UTF-8 string.
-    \param c A string of proper UTF-8 character values.
-    \param advance_pointer If true, the source pointer will be incremented to skip the extra bytes from multibyte codepoints.
-    */
-    static Uint32 getCodepointFromUTF8(const char*& c, bool advance_pointer = false);
-    
-    /*!
-    Parses the given codepoint and stores the UTF-8 bytes in 'result'.  The result is NULL terminated.
-    \param result A memory buffer for the UTF-8 values.  Must be at least 5 bytes long.
-    \param codepoint The Uint32 codepoint to parse.
-    */
-    static void getUTF8FromCodepoint(char* result, Uint32 codepoint);
-    
-    // Static accessors
-    static void setAnimData(void* data);
-    static void setBuffer(unsigned int size);
     
     // Constructors
     NFont();
     NFont(const NFont& font);
+    #ifdef NFONT_USE_SDL_GPU
     NFont(SDL_Surface* src);
-    #ifndef NFONT_NO_TTF
-        NFont(TTF_Font* ttf);
-        NFont(TTF_Font* ttf, const NFont::Color& color);
-        NFont(const char* filename_ttf, Uint32 pointSize);
-        NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
-        NFont(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    NFont(TTF_Font* ttf);
+    NFont(TTF_Font* ttf, const NFont::Color& color);
+    NFont(const char* filename_ttf, Uint32 pointSize);
+    NFont(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    NFont(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    #else
+    NFont(SDL_Renderer* renderer, SDL_Surface* src);
+    NFont(SDL_Renderer* renderer, TTF_Font* ttf);
+    NFont(SDL_Renderer* renderer, TTF_Font* ttf, const NFont::Color& color);
+    NFont(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize);
+    NFont(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    NFont(SDL_Renderer* renderer, SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
-
+    
     ~NFont();
     
     NFont& operator=(const NFont& font);
 
     // Loading
+    #ifdef NFONT_USE_SDL_GPU
     bool load(SDL_Surface* FontSurface);
-    #ifndef NFONT_NO_TTF
-        bool load(TTF_Font* ttf);
-        bool load(TTF_Font* ttf, const NFont::Color& color);
-        bool load(const char* filename_ttf, Uint32 pointSize);
-        bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
-        bool load(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    bool load(TTF_Font* ttf);
+    bool load(TTF_Font* ttf, const NFont::Color& color);
+    bool load(const char* filename_ttf, Uint32 pointSize);
+    bool load(const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    bool load(SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    #else
+    bool load(SDL_Renderer* renderer, SDL_Surface* FontSurface);
+    bool load(SDL_Renderer* renderer, TTF_Font* ttf);
+    bool load(SDL_Renderer* renderer, TTF_Font* ttf, const NFont::Color& color);
+    bool load(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize);
+    bool load(SDL_Renderer* renderer, const char* filename_ttf, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
+    bool load(SDL_Renderer* renderer, SDL_RWops* file_rwops_ttf, Uint8 own_rwops, Uint32 pointSize, const NFont::Color& color, int style = TTF_STYLE_NORMAL);
     #endif
     
     void free();
 
     // Drawing
+    #ifdef NFONT_USE_SDL_GPU
     Rectf draw(GPU_Target* dest, float x, float y, const char* formatted_text, ...);
     Rectf draw(GPU_Target* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
     Rectf draw(GPU_Target* dest, float x, float y, const Scale& scale, const char* formatted_text, ...);
     Rectf draw(GPU_Target* dest, float x, float y, const Color& color, const char* formatted_text, ...);
     Rectf draw(GPU_Target* dest, float x, float y, const Effect& effect, const char* formatted_text, ...);
-    Rectf draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, const char* text, ...);
-    Rectf draw(GPU_Target* dest, float x, float y, const AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align, const char* text, ...);
     
     Rectf drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...);
     Rectf drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    #else
+    Rectf draw(SDL_Renderer* dest, float x, float y, const char* formatted_text, ...);
+    Rectf draw(SDL_Renderer* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
+    Rectf draw(SDL_Renderer* dest, float x, float y, const Scale& scale, const char* formatted_text, ...);
+    Rectf draw(SDL_Renderer* dest, float x, float y, const Color& color, const char* formatted_text, ...);
+    Rectf draw(SDL_Renderer* dest, float x, float y, const Effect& effect, const char* formatted_text, ...);
+    
+    Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const char* formatted_text, ...);
+    Rectf drawBox(SDL_Renderer* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
+    Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    #endif
     
     // Getters
+    #ifdef NFONT_USE_SDL_GPU
     GPU_Image* getImage() const;
+    #else
+    SDL_Texture* getImage() const;
+    #endif
     SDL_Surface* getSurface() const;
     Uint16 getHeight() const;
     Uint16 getHeight(const char* formatted_text, ...) const;
     Uint16 getWidth(const char* formatted_text, ...);
-    Uint16 getColumnPosWidth(Uint16 width, Uint16 pos, const char* formatted_text, ...);
-    Uint16 getColumnPosHeight(Uint16 width, Uint16 pos, const char* formatted_text, ...);
+    Rectf getCharacterOffset(Uint16 position_index, int column_width, const char* formatted_text, ...);
     Uint16 getColumnHeight(Uint16 width, const char* formatted_text, ...);
     int getSpacing() const;
     int getLineSpacing() const;
@@ -322,69 +258,16 @@ class NFont
     void setBaseline(Uint16 Baseline);
     void setDefaultColor(const Color& color);
     
-    #ifndef NFONT_NO_TTF
     void enableTTFOwnership();
-    #endif
     
   private:
     
-    SDL_Renderer* renderer;
-    #ifndef NFONT_NO_TTF
-    TTF_Font* ttf_source;  // TTF_Font source of characters
-    bool owns_ttf_source;  // Can we delete the TTF_Font ourselves?
-    #endif
-    SDL_Surface* srcSurface;  // bitmap source of characters
-    GPU_Image* src;  // bitmap source of characters
-    
-    Color default_color;
-    Uint16 height;
-
-    Uint16 maxWidth;
-    Uint16 baseline;
-    int ascent;
-    int descent;
-
-    int lineSpacing;
-    int letterSpacing;
-    
-    // Uses 32-bit (4-byte) Unicode codepoints to refer to each glyph
-    // Codepoints are little endian (reversed from UTF-8) so that something like 0x00000005 is ASCII 5 and the map can be indexed by ASCII values
-    // Glyph needs to store it's blitting rect
-    std::map<Uint32, GlyphData> glyphs;
-    SDL_Rect lastGlyph;  // Texture packing cursor
-    std::vector<GPU_Image*> glyphCache;  // TODO: Use this to store the glyphs (instead of 'src').  The issue is getting SDL_Surface glyphs blitted here.
-    
-    //int maxPos;
-    bool addGlyph(Uint32 codepoint, Uint16 width, Uint16 maxWidth, Uint16 maxHeight);
-    bool getGlyphData(GlyphData* result, Uint32 codepoint);
+    static char* buffer;
+    FC_Font* font;
     
     void init();  // Common constructor
 
-    Rectf render_animated(GPU_Target* dest, float x, float y, const NFont::AnimParams& params, NFont::AnimFn posFn, NFont::AlignEnum align);
-    
-    // Static variables
-    static char* buffer;  // Shared buffer for efficient drawing
-    static AnimData data;  // Data is wrapped in a struct so it can all be passed to 
-                                 // the function pointers for animation
-    
-    Rectf render_left(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    Rectf render_left(GPU_Target* dest, float x, float y, const char* text);
-    Rectf render_center(GPU_Target* dest, float x, float y, const char* text);
-    Rectf render_center(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    Rectf render_right(GPU_Target* dest, float x, float y, const char* text);
-    Rectf render_right(GPU_Target* dest, float x, float y, const Scale& scale, const char* text);
-    
 };
-
-
-namespace NFontAnim
-{
-    void bounce(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void wave(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void stretch(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void shake(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
-    void circle(float& x, float& y, const NFont::AnimParams& params, NFont::AnimData& data);
-}
 
 
 
