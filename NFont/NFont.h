@@ -1,5 +1,5 @@
 /*
-NFontR v4.0.0: A font class for SDL and SDL_Renderer
+NFont v4.0.0: A font class for SDL and SDL_Renderer
 by Jonathan Dearborn
 Dedicated to the memory of Florian Hufsky
 
@@ -30,10 +30,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef _NFONTR_H__
-#define _NFONTR_H__
-
-#define NFONTR
+#ifndef _NFONT_H__
+#define _NFONT_H__
 
 #include "SDL.h"
 

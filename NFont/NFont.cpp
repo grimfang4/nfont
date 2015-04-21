@@ -786,7 +786,7 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Effect& eff
 
 Uint16 NFont::getHeight() const
 {
-    return FC_GetHeight(font, NULL);
+    return FC_GetLineHeight(font);
 }
 
 Uint16 NFont::getHeight(const char* formatted_text, ...) const
