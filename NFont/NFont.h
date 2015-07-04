@@ -35,16 +35,20 @@ THE SOFTWARE.
 
 #include "SDL.h"
 
+#if defined(FC_USE_SDL_GPU) && !defined(NFONT_USE_SDL_GPU)
+#define NFONT_USE_SDL_GPU
+#endif
+
+#if defined(NFONT_USE_SDL_GPU) && !defined(FC_USE_SDL_GPU)
+#error NFont must be compiled to use the same backend as SDL_FontCache (i.e. you must define FC_USE_SDL_GPU for SDL_gpu support)
+#endif
+
 #ifdef NFONT_USE_SDL_GPU
     #include "SDL_gpu.h"
 #endif
 
 #include "SDL_FontCache.h"
 #include "stdarg.h"
-
-#if defined(NFONT_USE_SDL_GPU) ^ defined(FC_USE_SDL_GPU)
-#error NFont must be compiled to use the same backend as SDL_FontCache (define both NFONT_USE_SDL_GPU and FC_USE_SDL_GPU or else neither)
-#endif
 
 // Let's pretend this exists...
 #define TTF_STYLE_OUTLINE	16
@@ -182,6 +186,8 @@ class NFont
     NFont& operator=(const NFont& font);
 
     // Loading
+    void setLoadingString(const char* str);
+    
     #ifdef NFONT_USE_SDL_GPU
     bool load(SDL_Surface* FontSurface);
     bool load(TTF_Font* ttf);
@@ -210,8 +216,10 @@ class NFont
     
     Rectf drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...);
     Rectf drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawBox(GPU_Target* dest, const Rectf& box, const Effect& effect, const char* formatted_text, ...);
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const Effect& effect, const char* formatted_text, ...);
     #else
     Rectf draw(SDL_Renderer* dest, float x, float y, const char* formatted_text, ...);
     Rectf draw(SDL_Renderer* dest, float x, float y, AlignEnum align, const char* formatted_text, ...);
@@ -221,8 +229,10 @@ class NFont
     
     Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const char* formatted_text, ...);
     Rectf drawBox(SDL_Renderer* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const Effect& effect, const char* formatted_text, ...);
     Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
     Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const Effect& effect, const char* formatted_text, ...);
     #endif
     
     // Getters
