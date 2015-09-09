@@ -1,6 +1,7 @@
 #include "SDL.h"
 
 #include "../NFont/NFont.h"
+#include "../SDL_FontCache/SDL_FontCache.h"
 
 #include <cmath>
 #include <string>

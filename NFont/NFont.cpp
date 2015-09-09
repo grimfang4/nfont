@@ -31,6 +31,7 @@ THE SOFTWARE.
 */
 
 #include "NFont.h"
+#include "SDL_FontCache.h"
 
 #include <cmath>
 #include <cstdio>
