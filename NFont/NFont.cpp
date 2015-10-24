@@ -408,7 +408,6 @@ GPU_Rect NFont::Rectf::to_GPU_Rect() const
 
 
 
-
 char* NFont::buffer = NULL;  // Shared buffer for efficient drawing
 
 

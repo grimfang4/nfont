@@ -54,11 +54,21 @@ struct FC_Font;
 
 typedef struct _TTF_Font TTF_Font;
 
-class NFont
+#if defined(NFONT_DLL) || defined(NFONT_DLL_EXPORT)
+	#ifdef NFONT_DLL_EXPORT
+	#define NFONT_EXPORT __declspec(dllexport)
+	#else
+	#define NFONT_EXPORT __declspec(dllimport)
+	#endif
+#else
+	#define NFONT_EXPORT
+#endif
+
+class NFONT_EXPORT NFont
 {
   public:
 
-    class Color
+	class NFONT_EXPORT Color
     {
         public:
         
@@ -76,7 +86,7 @@ class NFont
         SDL_Color to_SDL_Color() const;
     };
     
-    class Rectf
+	class NFONT_EXPORT Rectf
     {
         public:
         float x, y;
@@ -98,7 +108,7 @@ class NFont
     
     enum AlignEnum {LEFT, CENTER, RIGHT};
     
-    class Scale
+	class NFONT_EXPORT Scale
     {
         public:
         
@@ -125,7 +135,7 @@ class NFont
         {}
     };
     
-    class Effect
+	class NFONT_EXPORT Effect
     {
         public:
         AlignEnum alignment;
