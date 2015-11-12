@@ -107,6 +107,7 @@ class NFONT_EXPORT NFont
 
     
     enum AlignEnum {LEFT, CENTER, RIGHT};
+    enum FilterEnum {NEAREST, LINEAR};
     
 	class NFONT_EXPORT Scale
     {
@@ -226,9 +227,14 @@ class NFONT_EXPORT NFont
     
     Rectf drawBox(GPU_Target* dest, const Rectf& box, const char* formatted_text, ...);
     Rectf drawBox(GPU_Target* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawBox(GPU_Target* dest, const Rectf& box, const Scale& scale, const char* formatted_text, ...);
+    Rectf drawBox(GPU_Target* dest, const Rectf& box, const Color& color, const char* formatted_text, ...);
     Rectf drawBox(GPU_Target* dest, const Rectf& box, const Effect& effect, const char* formatted_text, ...);
+    
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const Scale& scale, const char* formatted_text, ...);
+    Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const Color& color, const char* formatted_text, ...);
     Rectf drawColumn(GPU_Target* dest, float x, float y, Uint16 width, const Effect& effect, const char* formatted_text, ...);
     #else
     Rectf draw(SDL_Renderer* dest, float x, float y, const char* formatted_text, ...);
@@ -239,9 +245,14 @@ class NFONT_EXPORT NFont
     
     Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const char* formatted_text, ...);
     Rectf drawBox(SDL_Renderer* dest, const Rectf& box, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const Scale& scale, const char* formatted_text, ...);
+    Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const Color& color, const char* formatted_text, ...);
     Rectf drawBox(SDL_Renderer* dest, const Rectf& box, const Effect& effect, const char* formatted_text, ...);
+    
     Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const char* formatted_text, ...);
     Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, AlignEnum align, const char* formatted_text, ...);
+    Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const Scale& scale, const char* formatted_text, ...);
+    Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const Color& color, const char* formatted_text, ...);
     Rectf drawColumn(SDL_Renderer* dest, float x, float y, Uint16 width, const Effect& effect, const char* formatted_text, ...);
     #endif
     
@@ -252,6 +263,7 @@ class NFONT_EXPORT NFont
     SDL_Texture* getImage() const;
     #endif
     SDL_Surface* getSurface() const;
+    FilterEnum getFilterMode() const;
     Uint16 getHeight() const;
     Uint16 getHeight(const char* formatted_text, ...) const;
     Uint16 getWidth(const char* formatted_text, ...);
@@ -270,6 +282,7 @@ class NFONT_EXPORT NFont
     Color getDefaultColor() const;
     
     // Setters
+    void setFilterMode(FilterEnum filter);
     void setSpacing(int LetterSpacing);
     void setLineSpacing(int LineSpacing);
     void setBaseline();

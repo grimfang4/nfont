@@ -701,6 +701,40 @@ NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, AlignEnum alig
     #endif
 }
 
+NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const Scale& scale, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(box.x, box.y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    #ifdef NFONT_USE_SDL_GPU
+    return FC_DrawBoxScale(font, dest, box.to_GPU_Rect(), FC_MakeScale(scale.x, scale.y), "%s", buffer);
+    #else
+    return FC_DrawBoxScale(font, dest, box.to_SDL_Rect(), FC_MakeScale(scale.x, scale.y), "%s", buffer);
+    #endif
+}
+
+NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const Color& color, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(box.x, box.y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+    
+    #ifdef NFONT_USE_SDL_GPU
+    return FC_DrawBoxColor(font, dest, box.to_GPU_Rect(), color.to_SDL_Color(), "%s", buffer);
+    #else
+    return FC_DrawBoxColor(font, dest, box.to_SDL_Rect(), color.to_SDL_Color(), "%s", buffer);
+    #endif
+}
+
 NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const Effect& effect, const char* formatted_text, ...)
 {
     if(formatted_text == NULL)
@@ -742,6 +776,32 @@ NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 widt
     va_end(lst);
 
     return FC_DrawColumnAlign(font, dest, x, y, width, translate_enum_NFont_to_FC(align), "%s", buffer);
+}
+
+NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 width, const Scale& scale, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(x, y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+
+    return FC_DrawColumnScale(font, dest, x, y, width, FC_MakeScale(scale.x, scale.y), "%s", buffer);
+}
+
+NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 width, const Color& color, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(x, y, 0, 0);
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsprintf(buffer, formatted_text, lst);
+    va_end(lst);
+
+    return FC_DrawColumnColor(font, dest, x, y, width, color.to_SDL_Color(), "%s", buffer);
 }
 
 NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 width, const Effect& effect, const char* formatted_text, ...)
@@ -821,6 +881,14 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Effect& eff
 
 // Getters
 
+
+NFont::FilterEnum NFont::getFilterMode() const
+{
+    FC_FilterEnum f = FC_GetFilterMode(font);
+    if(f == FC_FILTER_LINEAR)
+        return NFont::LINEAR;
+    return NFont::NEAREST;
+}
 
 Uint16 NFont::getHeight() const
 {
@@ -957,6 +1025,15 @@ NFont::Color NFont::getDefaultColor() const
 
 
 // Setters
+
+void NFont::setFilterMode(NFont::FilterEnum filter)
+{
+    if(filter == NFont::LINEAR)
+        FC_SetFilterMode(font, FC_FILTER_LINEAR);
+    else
+        FC_SetFilterMode(font, FC_FILTER_NEAREST);
+}
+
 void NFont::setSpacing(int LetterSpacing)
 {
     FC_SetSpacing(font, LetterSpacing);
