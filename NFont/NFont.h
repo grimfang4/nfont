@@ -47,6 +47,8 @@ THE SOFTWARE.
 
 #if ( (defined(__GNUC__) && (__GNUC__ >= 4)) || defined(__clang__) )
 #define NFONT_FORMAT(X) __attribute__ ((format (printf, X, X+1)))
+#else
+#define NFONT_FORMAT(X)
 #endif
 
 #endif 
