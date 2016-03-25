@@ -5,9 +5,9 @@ Dedicated to the memory of Florian Hufsky
 
 License:
     The short:
-    Use it however you'd like, but keep the copyright and license notice 
+    Use it however you'd like, but keep the copyright and license notice
     whenever these files or parts of them are distributed in uncompiled form.
-    
+
     The long:
 Copyright (c) 2014 Jonathan Dearborn
 
@@ -57,6 +57,30 @@ using std::list;
 
 #define MIN(a,b) ((a) < (b)? (a) : (b))
 #define MAX(a,b) ((a) > (b)? (a) : (b))
+
+#define NFONT_BUFFER_SIZE 1024
+
+// vsnprintf replacement adapted from Valentin Milea:
+// http://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010
+#if defined(_MSC_VER) && _MSC_VER < 1900
+
+#define vsnprintf c99_vsnprintf
+
+static int c99_vsnprintf(char *outBuf, size_t size, const char *format, va_list ap)
+{
+    int count = -1;
+
+    if (size != 0)
+        count = _vsnprintf_s(outBuf, size, _TRUNCATE, format, ap);
+    if (count == -1)
+        count = _vscprintf(format, ap);
+
+    return count;
+}
+
+#endif
+
+
 
 static inline SDL_Surface* createSurface24(Uint32 width, Uint32 height)
 {
@@ -495,9 +519,9 @@ NFont& NFont::operator=(const NFont& font)
 void NFont::init()
 {
     font = FC_CreateFont();
-    
+
     if(buffer == NULL)
-        buffer = new char[1024];
+        buffer = new char[NFONT_BUFFER_SIZE];
 }
 
 
@@ -531,12 +555,12 @@ bool NFont::load(NFont_Target* renderer, TTF_Font* ttf, const NFont::Color& colo
 {
     if(ttf == NULL)
         return false;
-    
+
     #ifndef NFONT_USE_SDL_GPU
     if(renderer == NULL)
         return false;
     #endif
-    
+
     FC_ClearFont(font);
     #ifdef NFONT_USE_SDL_GPU
     return FC_LoadFontFromTTF(font, ttf, color.to_SDL_Color());
@@ -602,7 +626,7 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const char* forma
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_Draw(font, dest, x, y, "%s", buffer);
@@ -659,9 +683,9 @@ NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const char* fo
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     #ifdef NFONT_USE_SDL_GPU
     return FC_DrawBox(font, dest, box.to_GPU_Rect(), "%s", buffer);
     #else
@@ -691,9 +715,9 @@ NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, AlignEnum alig
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     #ifdef NFONT_USE_SDL_GPU
     return FC_DrawBoxAlign(font, dest, box.to_GPU_Rect(), translate_enum_NFont_to_FC(align), "%s", buffer);
     #else
@@ -708,9 +732,9 @@ NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const Scale& s
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     #ifdef NFONT_USE_SDL_GPU
     return FC_DrawBoxScale(font, dest, box.to_GPU_Rect(), FC_MakeScale(scale.x, scale.y), "%s", buffer);
     #else
@@ -725,9 +749,9 @@ NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const Color& c
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     #ifdef NFONT_USE_SDL_GPU
     return FC_DrawBoxColor(font, dest, box.to_GPU_Rect(), color.to_SDL_Color(), "%s", buffer);
     #else
@@ -742,9 +766,9 @@ NFont::Rectf NFont::drawBox(NFont_Target* dest, const Rectf& box, const Effect& 
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     #ifdef NFONT_USE_SDL_GPU
     return FC_DrawBoxEffect(font, dest, box.to_GPU_Rect(), FC_MakeEffect(translate_enum_NFont_to_FC(effect.alignment), FC_MakeScale(effect.scale.x, effect.scale.y), effect.color.to_SDL_Color()), "%s", buffer);
     #else
@@ -759,7 +783,7 @@ NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 widt
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawColumn(font, dest, x, y, width, "%s", buffer);
@@ -772,7 +796,7 @@ NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 widt
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawColumnAlign(font, dest, x, y, width, translate_enum_NFont_to_FC(align), "%s", buffer);
@@ -785,7 +809,7 @@ NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 widt
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawColumnScale(font, dest, x, y, width, FC_MakeScale(scale.x, scale.y), "%s", buffer);
@@ -798,7 +822,7 @@ NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 widt
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawColumnColor(font, dest, x, y, width, color.to_SDL_Color(), "%s", buffer);
@@ -811,9 +835,9 @@ NFont::Rectf NFont::drawColumn(NFont_Target* dest, float x, float y, Uint16 widt
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     #ifdef NFONT_USE_SDL_GPU
     return FC_DrawColumnEffect(font, dest, x, y, width, FC_MakeEffect(translate_enum_NFont_to_FC(effect.alignment), FC_MakeScale(effect.scale.x, effect.scale.y), effect.color.to_SDL_Color()), "%s", buffer);
     #else
@@ -830,7 +854,7 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Scale& scal
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawScale(font, dest, x, y, FC_MakeScale(scale.x, scale.y), "%s", buffer);
@@ -843,7 +867,7 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, AlignEnum align, 
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawAlign(font, dest, x, y, translate_enum_NFont_to_FC(align), "%s", buffer);
@@ -856,7 +880,7 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Color& colo
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawColor(font, dest, x, y, color.to_SDL_Color(), "%s", buffer);
@@ -870,7 +894,7 @@ NFont::Rectf NFont::draw(NFont_Target* dest, float x, float y, const Effect& eff
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_DrawEffect(font, dest, x, y, FC_MakeEffect(translate_enum_NFont_to_FC(effect.alignment), FC_MakeScale(effect.scale.x, effect.scale.y), effect.color.to_SDL_Color()), "%s", buffer);
@@ -902,9 +926,9 @@ Uint16 NFont::getHeight(const char* formatted_text, ...) const
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     return FC_GetHeight(font, "%s", buffer);
 }
 
@@ -915,9 +939,9 @@ Uint16 NFont::getWidth(const char* formatted_text, ...)
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     return FC_GetWidth(font, "%s", buffer);
 }
 
@@ -929,10 +953,24 @@ NFont::Rectf NFont::getCharacterOffset(Uint16 position_index, int column_width, 
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     return FC_GetCharacterOffset(font, position_index, column_width, "%s", buffer);
+}
+
+// Given an offset (x,y) from the text draw position (the upper-left corner), returns the character position (UTF-8 index)
+Uint16 NFont::getPositionFromOffset(float x, float y, int column_width, NFont::AlignEnum align, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return 0;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
+    va_end(lst);
+
+    return FC_GetPositionFromOffset(font, x, y, column_width, translate_enum_NFont_to_FC(align), "%s", buffer);
 }
 
 
@@ -943,9 +981,9 @@ Uint16 NFont::getColumnHeight(Uint16 width, const char* formatted_text, ...)
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     return FC_GetColumnHeight(font, width, "%s", buffer);
 }
 
@@ -966,7 +1004,7 @@ int NFont::getAscent(const char* formatted_text, ...)
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
 
     return FC_GetAscent(font, "%s", buffer);
@@ -989,9 +1027,9 @@ int NFont::getDescent(const char* formatted_text, ...)
 
     va_list lst;
     va_start(lst, formatted_text);
-    vsprintf(buffer, formatted_text, lst);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
     va_end(lst);
-    
+
     return FC_GetDescent(font, "%s", buffer);
 }
 
@@ -1046,12 +1084,12 @@ void NFont::setLineSpacing(int LineSpacing)
 
 void NFont::setBaseline()
 {
-    
+
 }
 
 void NFont::setBaseline(Uint16 Baseline)
 {
-    
+
 }
 
 void NFont::setDefaultColor(const Color& color)
@@ -1061,7 +1099,7 @@ void NFont::setDefaultColor(const Color& color)
 
 void NFont::enableTTFOwnership()
 {
-    
+
 }
 
 
