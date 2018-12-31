@@ -1,5 +1,5 @@
 /*
-NFont v5.0.0: A font class for SDL and SDL_Renderer
+NFont v5.1.0: A font class for SDL and SDL_Renderer
 by Jonathan Dearborn
 Dedicated to the memory of Florian Hufsky
 
@@ -9,7 +9,7 @@ License:
     whenever these files or parts of them are distributed in uncompiled form.
     
     The long:
-Copyright (c) 2016 Jonathan Dearborn
+Copyright (c) 2019 Jonathan Dearborn
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -290,11 +290,18 @@ class NFONT_EXPORT NFont
     int getDescent() const;
     int getDescent(const char character);
     int getDescent(const char* formatted_text, ...) NFONT_FORMAT(2);
+    Rectf getBounds(float x, float y, const char* formatted_text, ...) NFONT_FORMAT(4);
+    Rectf getBounds(float x, float y, AlignEnum align, const char* formatted_text, ...) NFONT_FORMAT(5);
+    Rectf getBounds(float x, float y, const Scale& scale, const char* formatted_text, ...) NFONT_FORMAT(5);
+    Rectf getBounds(float x, float y, const Effect& effect, const char* formatted_text, ...) NFONT_FORMAT(5);
     Uint16 getMaxWidth() const;
     Color getDefaultColor() const;
     
     int getNumCacheLevels() const;
     NFont_Image* getCacheLevel(int level) const;
+    
+    // Returns the number of characters copied
+    int getWrappedText(char* result, int max_result_size, Uint16 width, const char* formatted_text, ...) NFONT_FORMAT(5);
     
     // Setters
     void setFilterMode(FilterEnum filter);

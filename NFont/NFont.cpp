@@ -962,6 +962,19 @@ Uint16 NFont::getColumnHeight(Uint16 width, const char* formatted_text, ...)
     return FC_GetColumnHeight(font, width, "%s", buffer);
 }
 
+int NFont::getWrappedText(char* result, int max_result_size, Uint16 width, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL || width == 0)
+        return 0;
+
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
+    va_end(lst);
+
+    return FC_GetWrappedText(font, result, max_result_size, width, "%s", buffer);
+}
+
 int NFont::getAscent(const char character)
 {
     return FC_GetAscent(font, "%c", character);
@@ -1021,6 +1034,58 @@ int NFont::getLineSpacing() const
 Uint16 NFont::getBaseline() const
 {
     return FC_GetBaseline(font);
+}
+
+NFont::Rectf NFont::getBounds(float x, float y, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(x, y, 0, 0);
+    
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
+    va_end(lst);
+    
+    return NFont::Rectf(FC_GetBounds(font, x, y, FC_ALIGN_LEFT, FC_MakeScale(1.0f, 1.0f), "%s", buffer));
+}
+
+NFont::Rectf NFont::getBounds(float x, float y, AlignEnum align, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(x, y, 0, 0);
+    
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
+    va_end(lst);
+    
+    return NFont::Rectf(FC_GetBounds(font, x, y, translate_enum_NFont_to_FC(align), FC_MakeScale(1.0f, 1.0f), "%s", buffer));
+}
+
+NFont::Rectf NFont::getBounds(float x, float y, const Scale& scale, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(x, y, 0, 0);
+    
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
+    va_end(lst);
+    
+    return NFont::Rectf(FC_GetBounds(font, x, y, FC_ALIGN_LEFT, FC_MakeScale(scale.x, scale.y), "%s", buffer));
+}
+
+NFont::Rectf NFont::getBounds(float x, float y, const Effect& effect, const char* formatted_text, ...)
+{
+    if(formatted_text == NULL)
+        return Rectf(x, y, 0, 0);
+    
+    va_list lst;
+    va_start(lst, formatted_text);
+    vsnprintf(buffer, NFONT_BUFFER_SIZE, formatted_text, lst);
+    va_end(lst);
+    
+    return NFont::Rectf(FC_GetBounds(font, x, y, translate_enum_NFont_to_FC(effect.alignment), FC_MakeScale(effect.scale.x, effect.scale.y), "%s", buffer));
 }
 
 Uint16 NFont::getMaxWidth() const
